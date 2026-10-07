@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تحديث ZTE Config على PythonAnywhere</title>
+<style>
+:root{--bg:#07111f;--card:#102238;--line:#2c4b68;--text:#edf6ff;--muted:#aac0d2;--cyan:#54d6e7;--green:#65dfa5;--orange:#ffd18a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Tahoma,sans-serif;line-height:1.7;padding:18px}main{max-width:900px;margin:auto}h1{color:var(--cyan);line-height:1.25}h2{font-size:19px;color:#9debf3;margin:8px 0}.intro,.warning,.card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:15px;margin:13px 0}.warning{border-color:#8b6937;color:var(--orange)}.muted{color:var(--muted);font-size:14px}.row{display:flex;gap:10px;align-items:stretch;direction:ltr}.code{margin:0;flex:1;background:#06101b;color:#d8f5ff;border-radius:8px;padding:12px;overflow:auto;white-space:pre-wrap;word-break:break-word;font:14px/1.55 monospace;text-align:left}.copy{background:var(--cyan);color:#06111c;border:0;border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:bold;white-space:nowrap}.copy.done{background:var(--green)}.ok{color:var(--green);font-family:monospace;font-size:13px}.ui{background:#071827;border:1px solid #31536e;padding:7px 11px;border-radius:8px;display:inline-block;font-weight:bold}ol{padding-right:24px}
+</style>
+</head>
+<body><main>
+<h1>تحديث ZTE Config على PythonAnywhere</h1>
+<div class="intro">هذه الصفحة لتحديث التطبيق بعد إضافة قسم <b>تشفير ملف XML</b>. اضغط <b>نسخ</b> بجانب كل أمر، ثم الصقه في Bash Console.</div>
+<div class="warning">لا تنفّذ أمر clone مرة أخرى. المشروع موجود بالفعل داخل <b>/home/mumost/zte-config</b>.</div>
+<div id="commands"></div>
+<h2>إعدادات Web المطلوبة</h2>
+<div class="card"><p>في تبويب <span class="ui">Web</span> تأكد من أن Source code وWorking directory هما:</p><div id="paths"></div><p>وفي خانة Virtualenv ضع:</p><div class="row"><pre class="code" id="venv">/home/mumost/.virtualenvs/zte-env</pre><button class="copy" onclick="copyText('venv',this)">نسخ</button></div></div>
+<h2>كود WSGI</h2>
+<div class="card"><p>افتح WSGI configuration file، احذف المحتوى القديم، الصق الكود، ثم اضغط Save.</p><div class="row"><pre class="code" id="wsgi">import sys
+
+project_path = "/home/mumost/zte-config"
+
+if project_path not in sys.path:
+    sys.path.insert(0, project_path)
+
+from app import app as application</pre><button class="copy" onclick="copyText('wsgi',this)">نسخ</button></div></div>
+<h2>بعد التحديث</h2>
+<div class="card"><ol><li>افتح تبويب Web.</li><li>اضغط Reload.</li><li>افتح رابط الموقع:</li></ol><div class="row"><pre class="code" id="url">https://mumost.pythonanywhere.com</pre><button class="copy" onclick="copyText('url',this)">نسخ</button></div><p class="ok">بعد الفتح سيظهر قسم «تشفير ملف XML» في الجهة اليسرى من الصفحة.</p></div>
+<script>
+const commands=[
+['1 - الدخول إلى المشروع','cd /home/mumost/zte-config'],
+['2 - تنزيل التعديلات الجديدة','git pull origin main'],
+['3 - تفعيل البيئة الافتراضية','source /home/mumost/.virtualenvs/zte-env/bin/activate'],
+['4 - تحديث المكتبات','pip install -r requirements.txt'],
+['5 - اختبار مكتبة التشفير','python -c "from Crypto.Cipher import AES; print(\'AES OK\')"'],
+['6 - اختبار Flask','python -c "from app import app; print(\'Flask app OK\')"']
+];
+const root=document.getElementById('commands');commands.forEach(([title,text],i)=>{const c=document.createElement('div');c.className='card';const h=document.createElement('h2');h.textContent=title;const r=document.createElement('div');r.className='row';const p=document.createElement('pre');p.className='code';p.id='cmd'+i;p.textContent=text;const b=document.createElement('button');b.className='copy';b.textContent='نسخ';b.onclick=()=>copyText(p.id,b);r.append(p,b);c.append(h,r);root.append(c)});
+const paths=document.getElementById('paths');['source','working'].forEach((name,i)=>{const r=document.createElement('div');r.className='row';const p=document.createElement('pre');p.className='code';p.id=name;p.textContent='/home/mumost/zte-config';const b=document.createElement('button');b.className='copy';b.textContent='نسخ';b.onclick=()=>copyText(name,b);r.append(p,b);paths.append(document.createTextNode(i?'Working directory':'Source code'),r)});
+async function copyText(id,b){const text=document.getElementById(id).textContent;try{await navigator.clipboard.writeText(text)}catch(e){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.append(t);t.select();document.execCommand('copy');t.remove()}b.textContent='تم النسخ';b.classList.add('done');setTimeout(()=>{b.textContent='نسخ';b.classList.remove('done')},1600)}
+</script></main></body></html>
