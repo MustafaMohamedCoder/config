@@ -1,3 +1,4 @@
+import io
 import unittest
 
 from app import app, decode_bytes, encode_bytes
@@ -29,6 +30,21 @@ class ZteConfigWebTests(unittest.TestCase):
         response = self.client.post("/api/encode", data={"xml": "<broken"})
         self.assertEqual(response.status_code, 400)
         self.assertIn("XML غير صالح", response.get_json()["error"])
+
+    def test_xml_upload_encode(self):
+        response = self.client.post(
+            "/api/encode-upload",
+            data={
+                "xml_file": (io.BytesIO(b"<DB><entry>ok</entry></DB>"), "config.xml"),
+                "payload_type": "0",
+                "include_header": "false",
+                "signature": "",
+            },
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "application/octet-stream")
+        self.assertGreater(len(response.data), 0)
 
     def test_missing_file_is_rejected(self):
         response = self.client.post("/api/decode", data={})

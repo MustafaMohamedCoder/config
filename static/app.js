@@ -28,6 +28,12 @@
   ['dragleave', 'drop'].forEach((eventName) => dropzone.addEventListener(eventName, (e) => { e.preventDefault(); dropzone.classList.remove('dragging'); }));
   dropzone.addEventListener('drop', (e) => { const file = e.dataTransfer.files[0]; if (file) { const input = $('#file-input'); const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; input.dispatchEvent(new Event('change')); } });
   $('#key-mode').addEventListener('change', (e) => $('#custom-fields').classList.toggle('d-none', e.target.value !== 'custom'));
+  $('#upload-key-mode').addEventListener('change', (e) => $('#upload-custom-fields').classList.toggle('d-none', e.target.value !== 'custom'));
+  $('#xml-file-input').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    $('#xml-file-name').textContent = file ? `${file.name} — ${(file.size / 1024).toFixed(1)} KB` : 'لم يتم اختيار ملف';
+    $('#xml-dropzone').classList.toggle('has-file', Boolean(file));
+  });
 
   $('#decode-form').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -61,5 +67,14 @@
   $('#encode-form-submit').addEventListener('click', async () => {
     const button = $('#encode-form-submit'); setBusy(button, true); alertBox.classList.add('d-none');
     try { await download('/api/encode', 'config.bin', metadataForm()); showAlert('تمت إعادة التشفير وتنزيل config.bin.', 'success'); } catch (e) { showAlert(e.message); } finally { setBusy(button, false); }
+  });
+  $('#xml-upload-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = event.target.querySelector('button[type=submit]');
+    setBusy(button, true); alertBox.classList.add('d-none');
+    try {
+      await download('/api/encode-upload', 'config.bin', new FormData(event.target));
+      showAlert('تم تشفير ملف XML وتنزيل config.bin بنجاح.', 'success');
+    } catch (error) { showAlert(error.message); } finally { setBusy(button, false); }
   });
 })();

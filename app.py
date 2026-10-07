@@ -267,6 +267,26 @@ def api_encode():
         return _error("حدث خطأ غير متوقع أثناء إعادة التشفير.", 500)
 
 
+@app.post("/api/encode-upload")
+def api_encode_upload():
+    upload = request.files.get("xml_file")
+    if upload is None or not upload.filename:
+        return _error("اختر ملف XML أولاً.")
+    try:
+        encoded = encode_bytes(upload.read(), request.form)
+        return send_file(
+            BytesIO(encoded),
+            mimetype="application/octet-stream",
+            as_attachment=True,
+            download_name="config.bin",
+        )
+    except ValueError as exc:
+        return _error(str(exc))
+    except Exception:
+        app.logger.exception("Unexpected XML upload encode error")
+        return _error("حدث خطأ غير متوقع أثناء تشفير ملف XML.", 500)
+
+
 @app.post("/api/download-xml")
 def api_download_xml():
     xml = request.form.get("xml", "").encode("utf-8")
