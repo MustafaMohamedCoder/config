@@ -82,6 +82,53 @@
       d.classList.toggle('done', s < n);
     });
   }
+  if (stepsEl) {
+    const go = (el) => {
+      const id = el.getAttribute('data-goto');
+      const t = id && document.getElementById(id);
+      if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    stepsEl.querySelectorAll('[data-goto]').forEach((d) => {
+      d.addEventListener('click', () => go(d));
+      d.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(d); } });
+    });
+  }
+
+  /* ---------- Persist settings ---------- */
+  const PREFS_KEY = 'zte-prefs';
+  function savePrefs() {
+    try {
+      const get = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+      localStorage.setItem(PREFS_KEY, JSON.stringify({
+        key_mode: get('key-mode'), signature: get('signature'), serial: get('serial'),
+        mac: get('mac'), longpass: get('longpass'),
+        upload_payload_type: get('upload-payload-type'), upload_key_mode: get('upload-key-mode'),
+        upload_signature: get('upload-signature'),
+      }));
+    } catch (_) {}
+  }
+  function loadPrefs() {
+    try {
+      const p = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
+      Object.entries({ 'key-mode': p.key_mode, 'signature': p.signature, 'serial': p.serial, 'mac': p.mac, 'longpass': p.longpass, 'upload-payload-type': p.upload_payload_type, 'upload-key-mode': p.upload_key_mode, 'upload-signature': p.upload_signature }).forEach(([id, v]) => {
+        if (v === undefined) return;
+        const el = document.getElementById(id);
+        if (el) el.value = v;
+      });
+      $('#custom-fields').classList.toggle('d-none', $('#key-mode').value !== 'custom');
+      $('#upload-custom-fields').classList.toggle('d-none', $('#upload-key-mode').value !== 'custom');
+    } catch (_) {}
+  }
+  loadPrefs();
+  document.querySelectorAll('#decode-form select, #decode-form input, #xml-upload-form select, #xml-upload-form input[type=text]').forEach((el) => {
+    el.addEventListener('change', savePrefs);
+  });
+
+  /* ---------- Progress ---------- */
+  function progressShow(id, on) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('d-none', !on);
+  }
 
   function showAlert(message, kind = 'danger') {
     alertBox.className = `alert alert-${kind}`;
@@ -115,12 +162,31 @@
     const hasContent = val.trim().length > 0;
     if (dirtyBadge) dirtyBadge.classList.toggle('d-none', !dirty);
     if (emptyState) emptyState.classList.toggle('d-none', hasContent);
-    // السماح بالعمل اليدوي: تفعيل الأزرار عند وجود محتوى حتى بدون فك ملف
     const dl = $('#download-xml');
     const enc = $('#encode-form-submit');
     if (dl) dl.disabled = !hasContent;
     if (enc) enc.disabled = !hasContent;
     if (hasContent) setStep(dirty ? 3 : 3);
+    // إحصاء كلمات السر + تحقق حي (بتأخير)
+    clearTimeout(syncEditor._t);
+    syncEditor._t = setTimeout(() => {
+      try {
+        const m = val.match(/passw(?:or)?d|presharedkey|wpakey|wepkey/gi);
+        const pc = $('#pass-count');
+        if (pc) pc.textContent = `🔑 ${(m ? m.length : 0).toLocaleString('ar')}`;
+        const xv = $('#xml-valid');
+        if (xv) {
+          if (!hasContent) { xv.textContent = '○'; xv.className = ''; }
+          else {
+            const doc = new DOMParser().parseFromString(val, 'text/xml');
+            const ok = !doc.querySelector('parsererror');
+            xv.textContent = ok ? '✔' : '✖';
+            xv.className = ok ? 'valid-ok' : 'valid-bad';
+            xv.title = ok ? 'XML سليم' : 'XML غير صالح';
+          }
+        }
+      } catch (_) {}
+    }, 400);
   }
   function syncCursor() {
     const c = editor.getCursor();
@@ -230,6 +296,88 @@
     } catch (_) { toast('XML غير صالح — راجع العلامات', 'error'); showAlert('XML غير صالح — راجع العلامات المفتوحة والمغلقة.'); }
   });
 
+  /* ---------- List modal (wifi / diff) ---------- */
+  const listModal = $('#list-modal');
+  const listBody = $('#list-modal-body');
+  const listTitle = $('#list-modal-title');
+  function openList(title, rows) {
+    if (!listModal) return;
+    listTitle.textContent = title;
+    listBody.innerHTML = '';
+    if (!rows.length) {
+      listBody.innerHTML = '<p class="empty-list">لا توجد نتائج — ارفع ملفاً أولاً.</p>';
+    } else {
+      rows.slice(0, 300).forEach(([ln, text]) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'list-row';
+        b.innerHTML = `<span class="ln" dir="ltr">${ln + 1}</span><span class="tx" dir="ltr"></span>`;
+        b.querySelector('.tx').textContent = text.trim().slice(0, 160);
+        b.addEventListener('click', () => {
+          closeList();
+          editor.setCursor({ line: ln, ch: 0 });
+          editor.focus();
+          editor.scrollIntoView({ from: { line: ln, ch: 0 }, to: { line: ln, ch: 0 } }, 120);
+        });
+        listBody.appendChild(b);
+      });
+      if (rows.length > 300) {
+        const p = document.createElement('p');
+        p.className = 'empty-list';
+        p.textContent = `يعرض أول 300 من ${rows.length} نتيجة — استخدم البحث للتضييق.`;
+        listBody.appendChild(p);
+      }
+    }
+    listModal.classList.remove('d-none');
+  }
+  function closeList() { if (listModal) listModal.classList.add('d-none'); }
+  const listClose = $('#list-modal-close');
+  if (listClose) listClose.addEventListener('click', closeList);
+  if (listModal) listModal.addEventListener('click', (e) => { if (e.target === listModal) closeList(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeList(); });
+  const btnWifi = $('#btn-wifi');
+  if (btnWifi) btnWifi.addEventListener('click', () => {
+    const val = editor.getValue();
+    if (!val.trim()) { toast('المحرر فارغ — ارفع ملفاً أولاً', 'error'); return; }
+    const rows = [];
+    val.split('\n').forEach((line, i) => { if (/ssid|presharedkey|password|wpakey|wepkey|wlan|wifaci|authkey/i.test(line)) rows.push([i, line]); });
+    openList(`📶 أسطر الواي فاي وكلمات السر (${rows.length})`, rows);
+  });
+  const btnDiff = $('#btn-diff');
+  if (btnDiff) btnDiff.addEventListener('click', () => {
+    if (!baseline) { toast('لا يوجد ملف أصلي للمقارنة', 'error'); return; }
+    const a = baseline.split('\n');
+    const b = editor.getValue().split('\n');
+    const rows = [];
+    const n = Math.max(a.length, b.length);
+    for (let i = 0; i < n && rows.length < 2000; i++) {
+      if ((a[i] || '') !== (b[i] || '')) rows.push([i, (b[i] === undefined ? '— سطر محذوف —' : b[i]) || '— سطر فارغ —']);
+    }
+    openList(`⇄ الأسطر المعدلة (${rows.length})`, rows.length ? rows : [[-1, 'لا توجد اختلافات — الملف مطابق للأصل']]);
+  });
+
+  /* ---------- Full-page drag & drop ---------- */
+  const pageDrop = $('#page-drop');
+  let dragDepth = 0;
+  window.addEventListener('dragenter', (e) => { e.preventDefault(); dragDepth++; if (pageDrop) pageDrop.classList.remove('d-none'); });
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('dragleave', (e) => { e.preventDefault(); if (--dragDepth <= 0) { dragDepth = 0; if (pageDrop) pageDrop.classList.add('d-none'); } });
+  window.addEventListener('drop', (e) => {
+    e.preventDefault(); dragDepth = 0;
+    if (pageDrop) pageDrop.classList.add('d-none');
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file) return;
+    const name = (file.name || '').toLowerCase();
+    const target = (name.endsWith('.xml') ? $('#xml-file-input') : $('#file-input'));
+    if (!target) return;
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    target.files = dt.files;
+    target.dispatchEvent(new Event('change'));
+    toast('تم استلام الملف: ' + file.name, 'info');
+    if (!name.endsWith('.xml')) document.getElementById('decode-form').scrollIntoView({ behavior: 'smooth' });
+  });
+
   /* ---------- File inputs ---------- */
   function bindFile(inputSel, nameSel, zoneSel) {
     const input = $(inputSel);
@@ -260,7 +408,7 @@
     event.preventDefault();
     if (!$('#file-input').files.length) { toast('اختر ملف config.bin أولاً', 'error'); return; }
     const button = event.target.querySelector('button[type=submit]');
-    setBusy(button, true); alertBox.classList.add('d-none'); setStep(2);
+    setBusy(button, true); progressShow('decode-progress', true); alertBox.classList.add('d-none'); setStep(2);
     try {
       const response = await fetch('/api/decode', { method: 'POST', body: new FormData(event.target) });
       const data = await response.json();
@@ -276,7 +424,7 @@
       setStep(3);
       toast('تم فك الملف بنجاح', 'success');
       document.getElementById('editor-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } catch (error) { showAlert(error.message); toast(error.message, 'error', 4500); } finally { setBusy(button, false); }
+    } catch (error) { showAlert(error.message); toast(error.message, 'error', 4500); } finally { setBusy(button, false); progressShow('decode-progress', false); }
   });
 
   function metadataForm() {
@@ -306,10 +454,10 @@
   $('#xml-upload-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const button = event.target.querySelector('button[type=submit]');
-    setBusy(button, true); alertBox.classList.add('d-none');
+    setBusy(button, true); progressShow('encode-progress', true); alertBox.classList.add('d-none');
     try {
       await download('/api/encode-upload', 'config.bin', new FormData(event.target));
       toast('تم تشفير XML وتنزيل config.bin', 'success');
-    } catch (error) { showAlert(error.message); toast(error.message, 'error'); } finally { setBusy(button, false); }
+    } catch (error) { showAlert(error.message); toast(error.message, 'error'); } finally { setBusy(button, false); progressShow('encode-progress', false); }
   });
 })();
