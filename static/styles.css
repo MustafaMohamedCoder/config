@@ -25,6 +25,11 @@ h1 span { color:var(--cyan); } .hero p { color:var(--muted); font-size:1.02rem; 
 .hero-tips { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.8rem; }
 .hero-tips span { font-size:.75rem; border:1px solid var(--line); background:var(--panel); border-radius:999px; padding:.3rem .75rem; color:var(--text); }
 code { color:var(--cyan); }
+/* usage box */
+.usage-box { border:1px solid var(--cyan); background:var(--panel); border-radius:14px; padding:.8rem 1rem; margin-bottom:1rem; font-size:.85rem; }
+.usage-box summary { cursor:pointer; font-weight:800; color:var(--text); }
+.usage-box ol { margin:.6rem 0 0; padding-inline-start:1.2rem; color:var(--muted); line-height:2; }
+.usage-box b { color:var(--text); }
 /* toast */
 .toast-wrap { position:fixed; bottom:1rem; inset-inline:0; display:flex; flex-direction:column; align-items:center; gap:.5rem; z-index:200; pointer-events:none; padding:0 1rem; }
 .toast-msg { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:12px; padding:.6rem 1rem; font-size:.85rem; font-weight:700; box-shadow:var(--shadow); opacity:0; transform:translateY(8px); transition:.25s; max-width:min(520px, 92vw); }
