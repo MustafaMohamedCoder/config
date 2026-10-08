@@ -15,72 +15,106 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-  <main class="container py-4 py-lg-5">
-    <header class="hero mb-4">
-      <div class="hero-top">
-        <div class="eyebrow">ZTE CONFIG STUDIO <span class="status-dot"></span> معالجة محلية</div>
+  <nav class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand"><span class="brand-mark">&lt;/&gt;</span><div><b>ZTE Config Studio</b><small>BIN ⇄ XML • معالجة محلية آمنة</small></div></div>
+      <div class="topbar-actions">
+        <span class="live-badge"><i></i>يعمل محلياً</span>
         <button id="theme-toggle" class="theme-toggle" type="button" title="تبديل الوضع الليلي / النهاري" aria-label="تبديل المظهر">
           <span class="theme-icon" aria-hidden="true">🌙</span><span id="theme-label">ليلي</span>
         </button>
       </div>
+    </div>
+  </nav>
+  <main class="container py-4 py-lg-5">
+    <header class="hero mb-4">
+      <div class="eyebrow">ZTE CONFIG STUDIO <span class="status-dot"></span> معالجة محلية</div>
       <h1>حوّل إعدادات الراوتر<br><span>بدون مغادرة المتصفح</span></h1>
-      <p>ارفع نسخة <code>config.bin</code>، عدّل XML مباشرة، ثم أعد بناء الملف مع الحفاظ على بيانات الحمولة والتوقيع.</p>
+      <p>ارفع نسخة <code>config.bin</code>، عدّل XML مباشرة، ثم أعد بناء الملف مع الحفاظ على بيانات الحمولة والتوقيع. لا تُرفع ملفاتك لأي خادم خارجي.</p>
+      <div class="hero-tips">
+        <span>🔒 خصوصية كاملة</span><span>⚡ فك وتشفير فوري</span><span>📱 يعمل على الجوال</span>
+      </div>
     </header>
 
+    <div id="toast-wrap" class="toast-wrap" aria-live="polite"></div>
     <div id="alert" class="alert d-none" role="alert"></div>
-    <section class="step-strip mb-4" aria-label="خطوات الاستخدام">
-      <div><b>01</b><span>رفع الملف</span></div><i></i><div><b>02</b><span>فك التشفير</span></div><i></i><div><b>03</b><span>تحرير XML</span></div><i></i><div><b>04</b><span>إعادة التشفير</span></div>
+    <section class="step-strip mb-4" aria-label="خطوات الاستخدام" id="steps">
+      <div data-step="1" class="active"><b>01</b><span>رفع الملف</span></div><i></i><div data-step="2"><b>02</b><span>فك التشفير</span></div><i></i><div data-step="3"><b>03</b><span>تحرير XML</span></div><i></i><div data-step="4"><b>04</b><span>إعادة التشفير</span></div>
     </section>
 
     <div class="row g-4 align-items-stretch">
       <aside class="col-lg-4">
         <form id="decode-form" class="panel">
-          <div class="panel-heading"><span class="icon">↧</span><div><h2>ملف المصدر</h2><small>فك تشفير نسخة الراوتر</small></div></div>
-          <label class="dropzone" for="file-input" id="dropzone">
+          <div class="panel-heading"><span class="icon">↧</span><div><h2>ملف المصدر</h2><small>فك تشفير نسخة الراوتر</small></div><span class="step-num">1</span></div>
+          <label class="dropzone" for="file-input" id="dropzone" tabindex="0" aria-label="منطقة رفع ملف config.bin">
             <input id="file-input" name="file" type="file" accept=".bin,application/octet-stream" required>
-            <strong>اسحب config.bin إلى هنا</strong><span>أو اختره من جهازك</span><em id="file-name">لم يتم اختيار ملف</em>
+            <strong>اسحب config.bin إلى هنا</strong><span>أو اختره من جهازك • حتى 16MB</span><em id="file-name">لم يتم اختيار ملف</em>
           </label>
           <div class="field"><label for="key-mode">مصدر المفتاح</label><select id="key-mode" name="key_mode" class="form-select"><option value="default">Default — اكتشاف تلقائي وتجربة المفاتيح المعروفة</option>{% for item in static_keys %}<option value="{{ item.value|e }}">{{ item.label|e }} — مفتاح ثابت</option>{% endfor %}{% for model in models %}<option value="model:{{ model|e }}">{{ model|e }} — مفتاح الموديل</option>{% endfor %}<option value="signature">Signature — اشتقاق من التوقيع</option><option value="serial">Serial — اشتقاق من الرقم التسلسلي</option><option value="tagparams">TagParams — MAC + Serial + Long Password</option><option value="custom">Custom — مفتاح و IV يدويان</option></select></div>
-          <div class="field"><label for="signature">Signature <small>(اختياري، يكتشف تلقائياً)</small></label><input id="signature" name="signature" class="form-control" placeholder="مثال: ZXHN H298N"></div>
-          <div class="advanced-grid"><div class="field"><label for="serial">Serial</label><input id="serial" name="serial" class="form-control"></div><div class="field"><label for="mac">MAC</label><input id="mac" name="mac" class="form-control" placeholder="AA:BB:CC:DD:EE:FF"></div></div>
-          <div class="field"><label for="longpass">Long Password <small>(لـ TagParams)</small></label><input id="longpass" name="longpass" class="form-control"></div>
-          <div id="custom-fields" class="d-none advanced-grid"><div class="field"><label for="custom-key">Key</label><input id="custom-key" name="custom_key" class="form-control"></div><div class="field"><label for="custom-iv">IV</label><input id="custom-iv" name="custom_iv" class="form-control"></div></div>
-          <button class="btn btn-primary w-100 mt-3" type="submit"><span>فك التشفير وعرض XML</span><span class="spinner-border spinner-border-sm d-none"></span></button>
-          <p class="privacy-note">لا تُحفظ الملفات على الخادم؛ تتم المعالجة في الذاكرة فقط.</p>
+          <div class="field"><label for="signature">Signature <small>(اختياري، يكتشف تلقائياً)</small></label><input id="signature" name="signature" class="form-control" placeholder="مثال: ZXHN H298N" autocomplete="off"></div>
+          <div class="advanced-grid"><div class="field"><label for="serial">Serial</label><input id="serial" name="serial" class="form-control" autocomplete="off"></div><div class="field"><label for="mac">MAC</label><input id="mac" name="mac" class="form-control" placeholder="AA:BB:CC:DD:EE:FF" autocomplete="off" dir="ltr"></div></div>
+          <div class="field"><label for="longpass">Long Password <small>(لـ TagParams)</small></label><input id="longpass" name="longpass" class="form-control" autocomplete="off"></div>
+          <div id="custom-fields" class="d-none advanced-grid"><div class="field"><label for="custom-key">Key</label><input id="custom-key" name="custom_key" class="form-control" autocomplete="off" dir="ltr"></div><div class="field"><label for="custom-iv">IV</label><input id="custom-iv" name="custom_iv" class="form-control" autocomplete="off" dir="ltr"></div></div>
+          <button class="btn btn-primary w-100 mt-3 btn-lg-action" type="submit"><span class="btn-text">فك التشفير وعرض XML</span><span class="spinner-border spinner-border-sm d-none"></span></button>
+          <p class="privacy-note">🔒 لا تُحفظ الملفات على الخادم؛ تتم المعالجة في الذاكرة فقط.</p>
         </form>
         <form id="xml-upload-form" class="panel mt-4">
-          <div class="panel-heading"><span class="icon">XML</span><div><h2>تشفير ملف XML</h2><small>ارفع XML جاهزاً ونزّل config.bin</small></div></div>
-          <label class="dropzone" for="xml-file-input" id="xml-dropzone">
+          <div class="panel-heading"><span class="icon">XML</span><div><h2>تشفير ملف XML</h2><small>ارفع XML جاهزاً ونزّل config.bin</small></div><span class="step-num">2</span></div>
+          <label class="dropzone mini" for="xml-file-input" id="xml-dropzone" tabindex="0">
             <input id="xml-file-input" name="xml_file" type="file" accept=".xml,text/xml,application/xml" required>
             <strong>اختر config.xml</strong><span>سيتم التحقق منه ثم تشفيره</span><em id="xml-file-name">لم يتم اختيار ملف</em>
           </label>
-          <div class="advanced-grid"><div class="field"><label for="upload-payload-type">نوع الحمولة</label><select id="upload-payload-type" name="payload_type" class="form-select"><option value="0">Type 0 — بدون تشفير</option><option value="2" selected>Type 2 — AES ثابت</option><option value="3">Type 3 — موديل</option><option value="4">Type 4 — Signature/Serial</option></select></div><div class="field"><label for="upload-version">Version</label><input id="upload-version" name="version" class="form-control" value="2" inputmode="numeric"></div></div>
+          <div class="advanced-grid"><div class="field"><label for="upload-payload-type">نوع الحمولة</label><select id="upload-payload-type" name="payload_type" class="form-select"><option value="0">Type 0 — بدون تشفير</option><option value="2" selected>Type 2 — AES ثابت</option><option value="3">Type 3 — موديل</option><option value="4">Type 4 — Signature/Serial</option></select></div><div class="field"><label for="upload-version">Version</label><input id="upload-version" name="version" class="form-control" value="2" inputmode="numeric" dir="ltr"></div></div>
           <div class="field"><label for="upload-key-mode">مصدر المفتاح</label><select id="upload-key-mode" name="key_mode" class="form-select"><option value="default">Default — اكتشاف المفتاح من Signature</option>{% for item in static_keys %}<option value="{{ item.value|e }}">{{ item.label|e }} — مفتاح ثابت</option>{% endfor %}{% for model in models %}<option value="model:{{ model|e }}">{{ model|e }} — مفتاح الموديل</option>{% endfor %}<option value="signature">Signature — اشتقاق من التوقيع</option><option value="serial">Serial — الرقم التسلسلي</option><option value="tagparams">TagParams — MAC + Serial + Long Password</option><option value="custom">Custom — Key و IV يدويان</option></select></div>
-          <div class="field"><label for="upload-signature">Signature</label><input id="upload-signature" name="signature" class="form-control" placeholder="مثال: ZXHN H108N V2.5"></div>
-          <div class="advanced-grid"><div class="field"><label for="upload-serial">Serial</label><input id="upload-serial" name="serial" class="form-control"></div><div class="field"><label for="upload-mac">MAC</label><input id="upload-mac" name="mac" class="form-control"></div></div>
-          <div class="field"><label for="upload-longpass">Long Password</label><input id="upload-longpass" name="longpass" class="form-control"></div>
-          <div id="upload-custom-fields" class="d-none advanced-grid"><div class="field"><label for="upload-custom-key">Key</label><input id="upload-custom-key" name="custom_key" class="form-control"></div><div class="field"><label for="upload-custom-iv">IV</label><input id="upload-custom-iv" name="custom_iv" class="form-control"></div></div>
+          <div class="field"><label for="upload-signature">Signature</label><input id="upload-signature" name="signature" class="form-control" placeholder="مثال: ZXHN H108N V2.5" autocomplete="off"></div>
+          <div class="advanced-grid"><div class="field"><label for="upload-serial">Serial</label><input id="upload-serial" name="serial" class="form-control" autocomplete="off"></div><div class="field"><label for="upload-mac">MAC</label><input id="upload-mac" name="mac" class="form-control" autocomplete="off" dir="ltr"></div></div>
+          <div class="field"><label for="upload-longpass">Long Password</label><input id="upload-longpass" name="longpass" class="form-control" autocomplete="off"></div>
+          <div id="upload-custom-fields" class="d-none advanced-grid"><div class="field"><label for="upload-custom-key">Key</label><input id="upload-custom-key" name="custom_key" class="form-control" dir="ltr"></div><div class="field"><label for="upload-custom-iv">IV</label><input id="upload-custom-iv" name="custom_iv" class="form-control" dir="ltr"></div></div>
           <div class="form-check mt-3"><input id="upload-include-header" name="include_header" value="true" class="form-check-input" type="checkbox"><label class="form-check-label" for="upload-include-header">إضافة رأس ZTE للملف</label></div>
           <button class="btn btn-success w-100 mt-3" type="submit"><span>تشفير XML وتنزيل config.bin</span><span class="spinner-border spinner-border-sm d-none"></span></button>
         </form>
+        <div class="help-card">
+          <b>💡 تلميح سريع</b>
+          <p>ابدأ بوضع <b>Default</b>. لو فشل الفك جرّب مفتاح الموديل، وملفات Type 4 تحتاج Serial/MAC من ملصق الراوتر.</p>
+        </div>
       </aside>
 
       <section class="col-lg-8">
-        <div class="panel editor-panel h-100">
-          <div class="panel-heading"><span class="icon">&lt;/&gt;</span><div><h2>محرر XML</h2><small id="editor-status">بانتظار فك ملف</small></div><span id="payload-badge" class="badge text-bg-secondary ms-auto d-none"></span><span id="dirty-badge" class="dirty-badge d-none" title="يوجد تعديلات غير محفوظة"><i></i>مُعدَّل</span></div>
-          <div class="search-bar" role="search" aria-label="بحث داخل XML">
-            <span class="search-icon" aria-hidden="true">🔍</span>
-            <input id="editor-search" type="search" placeholder="بحث في XML… (Enter للتالي، Shift+Enter للسابق)" autocomplete="off">
-            <span id="search-count" class="search-count">0 / 0</span>
-            <div class="search-nav">
-              <button id="search-prev" type="button" title="السابق (Shift+Enter)">▲</button>
-              <button id="search-next" type="button" title="التالي (Enter)">▼</button>
-              <button id="search-clear" type="button" title="مسح البحث">✕</button>
+        <div class="panel editor-panel h-100" id="editor-panel">
+          <div class="panel-heading"><span class="icon">&lt;/&gt;</span><div><h2>محرر XML</h2><small id="editor-status">بانتظار فك ملف — ارفع config.bin للبدء</small></div><span id="payload-badge" class="badge text-bg-secondary ms-auto d-none"></span><span id="dirty-badge" class="dirty-badge d-none" title="يوجد تعديلات غير محفوظة"><i></i>مُعدَّل</span></div>
+          <div id="meta-grid" class="meta-grid d-none"></div>
+          <div class="editor-toolbar" role="toolbar" aria-label="أدوات المحرر">
+            <div class="search-bar" role="search" aria-label="بحث داخل XML">
+              <span class="search-icon" aria-hidden="true">🔍</span>
+              <input id="editor-search" type="search" placeholder="بحث في XML… (Enter للتالي)" autocomplete="off" aria-label="بحث داخل المحرر">
+              <span id="search-count" class="search-count">0 / 0</span>
+              <div class="search-nav">
+                <button id="search-prev" type="button" title="السابق (Shift+Enter)">▲</button>
+                <button id="search-next" type="button" title="التالي (Enter)">▼</button>
+                <button id="search-clear" type="button" title="مسح البحث">✕</button>
+              </div>
+            </div>
+            <div class="tool-btns">
+              <button id="btn-copy" type="button" title="نسخ XML">📋 نسخ</button>
+              <button id="btn-beautify" type="button" title="تنسيق XML">✨ تنسيق</button>
+              <button id="btn-wrap" type="button" title="التفاف الأسطر">↩ التفاف</button>
+              <button id="btn-full" type="button" title="ملء الشاشة">⛶ ملء</button>
             </div>
           </div>
-          <textarea id="xml-editor" aria-label="محرر XML"></textarea>
-          <div class="editor-footer"><span id="cursor-pos" dir="ltr">Ln 1, Col 1</span><span id="edit-pos">آخر تعديل: —</span><span id="xml-size">0 بايت</span></div>
-          <div class="editor-actions"><button id="download-xml" class="btn btn-outline-light" type="button" disabled>تنزيل XML</button><button id="encode-form-submit" class="btn btn-success" type="button" disabled>تعديل وتشفير مباشر <span class="spinner-border spinner-border-sm d-none"></span></button></div>
+          <div class="editor-wrap" id="editor-wrap">
+            <textarea id="xml-editor" aria-label="محرر XML"></textarea>
+            <div id="editor-empty" class="editor-empty">
+              <div class="empty-art">📦</div>
+              <b>لا يوجد ملف بعد</b>
+              <p>ارفع <code>config.bin</code> من اليسار وسيظهر محتوى XML هنا للتعديل والبحث.</p>
+            </div>
+          </div>
+          <div class="editor-footer"><span id="cursor-pos" dir="ltr">Ln 1, Col 1</span><span id="edit-pos">آخر تعديل: —</span><span id="line-count">0 سطر</span><span id="xml-size">0 بايت</span></div>
+          <div class="editor-actions">
+            <button id="btn-validate" class="btn btn-outline-light" type="button">✔ تحقق من XML</button>
+            <button id="download-xml" class="btn btn-outline-light" type="button" disabled>⬇ تنزيل XML</button>
+            <button id="encode-form-submit" class="btn btn-success" type="button" disabled>🔒 تعديل وتشفير مباشر <span class="spinner-border spinner-border-sm d-none"></span></button>
+          </div>
         </div>
       </section>
     </div>

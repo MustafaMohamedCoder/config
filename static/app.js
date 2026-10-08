@@ -1,6 +1,18 @@
 (() => {
   const $ = (selector) => document.querySelector(selector);
   const alertBox = $('#alert');
+  const toastWrap = $('#toast-wrap');
+
+  /* ---------- Toast ---------- */
+  function toast(message, kind = 'info', ms = 3200) {
+    if (!toastWrap) { showAlert(message, kind === 'error' ? 'danger' : 'success'); return; }
+    const el = document.createElement('div');
+    el.className = `toast-msg ${kind}`;
+    el.textContent = message;
+    toastWrap.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, ms);
+  }
 
   /* ---------- Theme (dark / light) ---------- */
   const root = document.documentElement;
@@ -33,10 +45,12 @@
       'Cmd-F': 'findPersistent',
       'Ctrl-G': 'findNext',
       'Shift-Ctrl-G': 'findPrev',
+      'Ctrl-S': () => { $('#encode-form-submit').click(); return false; },
     },
   });
   let metadata = {};
   let baseline = '';
+  let wrapOn = false;
   const editedLines = new Set();
   function clearEditMarks() {
     editedLines.forEach((ln) => { try { editor.removeLineClass(ln, 'background', 'edited-line'); } catch (_) {} try { editor.setGutterMarker(ln, 'edit-gutter', null); } catch (_) {} });
@@ -59,26 +73,49 @@
     applyTheme(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
   });
 
+  /* ---------- Steps ---------- */
+  const stepsEl = $('#steps');
+  function setStep(n) {
+    if (!stepsEl) return;
+    stepsEl.querySelectorAll('[data-step]').forEach((d) => {
+      const s = Number(d.getAttribute('data-step'));
+      d.classList.toggle('active', s === n);
+      d.classList.toggle('done', s < n);
+    });
+  }
+
   function showAlert(message, kind = 'danger') {
     alertBox.className = `alert alert-${kind}`;
     alertBox.textContent = message;
     alertBox.classList.remove('d-none');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    clearTimeout(showAlert._t);
+    showAlert._t = setTimeout(() => alertBox.classList.add('d-none'), 6000);
   }
-  function setBusy(button, busy) {
+  function setBusy(button, busy, label) {
+    if (!button) return;
     button.disabled = busy;
     const spinner = button.querySelector('.spinner-border');
     if (spinner) spinner.classList.toggle('d-none', !busy);
+    const txt = button.querySelector('.btn-text');
+    if (txt && label) txt.textContent = label;
   }
 
   /* ---------- Edit / cursor indicators ---------- */
   const dirtyBadge = $('#dirty-badge');
   const cursorPos = $('#cursor-pos');
   const editPos = $('#edit-pos');
+  const emptyState = $('#editor-empty');
   function syncEditor() {
-    $('#xml-size').textContent = `${new Blob([editor.getValue()]).size.toLocaleString('ar')} بايت`;
-    const dirty = editor.getValue() !== baseline;
+    const val = editor.getValue();
+    const bytes = new Blob([val]).size;
+    const sizeEl = $('#xml-size');
+    if (sizeEl) sizeEl.textContent = `${bytes.toLocaleString('ar')} بايت`;
+    const lc = $('#line-count');
+    if (lc) lc.textContent = `${editor.lineCount().toLocaleString('ar')} سطر`;
+    const dirty = val !== baseline;
     if (dirtyBadge) dirtyBadge.classList.toggle('d-none', !dirty);
+    if (emptyState) emptyState.classList.toggle('d-none', val.trim().length > 0);
+    if (val.trim().length > 0) setStep(dirty ? 3 : 3);
   }
   function syncCursor() {
     const c = editor.getCursor();
@@ -90,17 +127,28 @@
       const now = new Date().toLocaleTimeString('ar');
       editPos.textContent = `آخر تعديل: سطر ${change.from.line + 1} • ${now}`;
     }
-    // مؤشر بصري ثابت على كل سطر مُعدَّل (خلفية + نقطة في الهامش)
     try {
       const from = change ? change.from.line : editor.getCursor().line;
       const to = change ? change.to.line : from;
       for (let ln = from; ln <= to; ln++) markEdited(ln);
-      // إبقاء السطر الحالي ظاهراً
-      editor.scrollIntoView({ from: editor.getCursor(), to: editor.getCursor() }, 60);
     } catch (_) {}
   });
   editor.on('cursorActivity', syncCursor);
-  syncEditor(); syncCursor();
+  syncEditor(); syncCursor(); setStep(1);
+
+  function renderMeta(md) {
+    const grid = $('#meta-grid');
+    if (!grid) return;
+    if (!md || !md.signature) { grid.classList.add('d-none'); grid.innerHTML = ''; return; }
+    const items = [
+      ['التوقيع', md.signature || '—'],
+      ['الحمولة', 'Type ' + (md.payload_type ?? '—')],
+      ['المفتاح', md.used_key_source || '—'],
+      ['الإصدار', String(md.version ?? '—')],
+    ];
+    grid.innerHTML = items.map(([k, v]) => `<div class="meta-item"><small>${k}</small><b dir="auto">${String(v).slice(0, 48)}</b></div>`).join('');
+    grid.classList.remove('d-none');
+  }
 
   /* ---------- Search inside XML ---------- */
   const searchInput = $('#editor-search');
@@ -117,7 +165,7 @@
     clearSearch();
     const q = (searchInput.value || '').trim();
     if (!q) return;
-    const cursor = editor.getSearchCursor(q, forward ? editor.getCursor() : { line: 0, ch: 0 }, { caseFold: true });
+    const cursor = editor.getSearchCursor(q, { line: 0, ch: 0 }, { caseFold: true });
     let guard = 0;
     while (cursor.findNext() && guard++ < 1000) {
       searchMarks.push(editor.markText(cursor.from(), cursor.to(), { className: 'cm-search-hit' }));
@@ -128,7 +176,7 @@
       return;
     }
     searchInput.classList.add('has-results');
-    searchIndex = forward ? 0 : searchMarks.length - 1;
+    searchIndex = 0;
     jumpToHit(searchIndex);
   }
   function jumpToHit(i) {
@@ -137,51 +185,106 @@
     const ranges = searchMarks.map((m) => { try { return m.find(); } catch (_) { return null; } }).filter(Boolean);
     if (!ranges.length) return;
     const r = ranges[searchIndex];
-    searchMarks.forEach((m) => { try { m.className = 'cm-search-hit'; } catch (_) {} });
-    // إبراز النتيجة الحالية بشكل مختلف
-    try {
-      const cur = editor.markText(r.from, r.to, { className: 'cm-search-hit-current' });
-      searchMarks.push(cur);
-    } catch (_) {}
+    const cur = searchMarks[searchMarks.length - 1];
+    if (cur && cur.className === 'cm-search-hit-current') { try { cur.clear(); } catch (_) {} searchMarks.pop(); }
+    try { searchMarks.push(editor.markText(r.from, r.to, { className: 'cm-search-hit-current' })); } catch (_) {}
     editor.setSelection(r.from, r.to);
     editor.scrollIntoView({ from: r.from, to: r.to }, 120);
-    editor.focus();
     if (searchCount) searchCount.textContent = `${searchIndex + 1} / ${ranges.length}`;
   }
   let searchDebounce = null;
-  searchInput.addEventListener('input', () => {
-    clearTimeout(searchDebounce);
-    searchDebounce = setTimeout(() => runSearch(true), 250);
-  });
-  searchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); if (!searchMarks.length) runSearch(!e.shiftKey); else jumpToHit(searchIndex + (e.shiftKey ? -1 : 1)); }
-    if (e.key === 'Escape') { clearSearch(); searchInput.value = ''; editor.focus(); }
-  });
-  $('#search-next').addEventListener('click', () => { if (!searchMarks.length) runSearch(true); else jumpToHit(searchIndex + 1); });
-  $('#search-prev').addEventListener('click', () => { if (!searchMarks.length) runSearch(false); else jumpToHit(searchIndex - 1); });
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => runSearch(true), 250);
+    });
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); if (!searchMarks.length) runSearch(true); else jumpToHit(searchIndex + (e.shiftKey ? -1 : 1)); }
+      if (e.key === 'Escape') { clearSearch(); searchInput.value = ''; editor.focus(); }
+    });
+  }
+  $('#search-next').addEventListener('click', () => { editor.focus(); if (!searchMarks.length) runSearch(true); else jumpToHit(searchIndex + 1); });
+  $('#search-prev').addEventListener('click', () => { editor.focus(); if (!searchMarks.length) runSearch(true); else jumpToHit(searchIndex - 1); });
   $('#search-clear').addEventListener('click', () => { clearSearch(); searchInput.value = ''; searchInput.focus(); });
 
-  $('#file-input').addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    $('#file-name').textContent = file ? `${file.name} — ${(file.size / 1024).toFixed(1)} KB` : 'لم يتم اختيار ملف';
-    $('#dropzone').classList.toggle('has-file', Boolean(file));
+  /* ---------- Toolbar ---------- */
+  $('#btn-copy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(editor.getValue()); toast('تم نسخ XML إلى الحافظة', 'success'); }
+    catch (_) { editor.execCommand('selectAll'); document.execCommand('copy'); toast('تم نسخ XML', 'success'); }
   });
-  const dropzone = $('#dropzone');
-  ['dragenter', 'dragover'].forEach((eventName) => dropzone.addEventListener(eventName, (e) => { e.preventDefault(); dropzone.classList.add('dragging'); }));
-  ['dragleave', 'drop'].forEach((eventName) => dropzone.addEventListener(eventName, (e) => { e.preventDefault(); dropzone.classList.remove('dragging'); }));
-  dropzone.addEventListener('drop', (e) => { const file = e.dataTransfer.files[0]; if (file) { const input = $('#file-input'); const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; input.dispatchEvent(new Event('change')); } });
+  $('#btn-beautify').addEventListener('click', () => {
+    try {
+      const raw = editor.getValue().trim();
+      if (!raw) { toast('المحرر فارغ', 'error'); return; }
+      let indent = 0;
+      const formatted = raw.replace(/>\s*</g, '><').replace(/(<\/?[^>]+>)/g, (m) => {
+        let pad = '';
+        if (/^<\//.test(m)) indent = Math.max(0, indent - 1);
+        pad = '  '.repeat(indent);
+        if (/^<[^!?/][^>]*[^/]>$/.test(m)) indent += 1;
+        return '\n' + pad + m;
+      }).trim();
+      const cur = editor.getCursor();
+      editor.setValue(formatted);
+      editor.setCursor(cur);
+      toast('تم تنسيق XML', 'success');
+    } catch (e) { toast('تعذر التنسيق — تحقق من XML', 'error'); }
+  });
+  $('#btn-wrap').addEventListener('click', (e) => {
+    wrapOn = !wrapOn;
+    editor.setOption('lineWrapping', wrapOn);
+    e.currentTarget.classList.toggle('on', wrapOn);
+  });
+  $('#btn-full').addEventListener('click', () => {
+    const panel = $('#editor-panel');
+    const on = panel.classList.toggle('fullscreen');
+    $('#btn-full').textContent = on ? '✕ خروج' : '⛶ ملء';
+    editor.refresh();
+    editor.focus();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { $('#editor-panel').classList.remove('fullscreen'); $('#btn-full').textContent = '⛶ ملء'; } });
+  $('#btn-validate').addEventListener('click', () => {
+    const v = editor.getValue().trim();
+    if (!v) { toast('المحرر فارغ — ارفع ملفاً أولاً', 'error'); return; }
+    try {
+      new DOMParser().parseFromString(v, 'text/xml').querySelector('parsererror');
+      const doc = new DOMParser().parseFromString(v, 'text/xml');
+      if (doc.querySelector('parsererror')) throw new Error('parse');
+      toast('XML سليم ✔', 'success');
+    } catch (_) { toast('XML غير صالح — راجع العلامات', 'error'); showAlert('XML غير صالح — راجع العلامات المفتوحة والمغلقة.'); }
+  });
+
+  /* ---------- File inputs ---------- */
+  function bindFile(inputSel, nameSel, zoneSel) {
+    const input = $(inputSel);
+    if (!input) return;
+    input.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      $(nameSel).textContent = file ? `${file.name} — ${(file.size / 1024).toFixed(1)} KB` : 'لم يتم اختيار ملف';
+      $(zoneSel).classList.toggle('has-file', Boolean(file));
+      if (file) { setStep(1); }
+    });
+    const zone = $(zoneSel);
+    if (zone) {
+      zone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+      ['dragenter', 'dragover'].forEach((n) => zone.addEventListener(n, (e) => { e.preventDefault(); zone.classList.add('dragging'); }));
+      ['dragleave', 'drop'].forEach((n) => zone.addEventListener(n, (e) => { e.preventDefault(); zone.classList.remove('dragging'); }));
+      zone.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) { const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; input.dispatchEvent(new Event('change')); toast('تم استلام الملف: ' + file.name, 'info'); }
+      });
+    }
+  }
+  bindFile('#file-input', '#file-name', '#dropzone');
+  bindFile('#xml-file-input', '#xml-file-name', '#xml-dropzone');
   $('#key-mode').addEventListener('change', (e) => $('#custom-fields').classList.toggle('d-none', e.target.value !== 'custom'));
   $('#upload-key-mode').addEventListener('change', (e) => $('#upload-custom-fields').classList.toggle('d-none', e.target.value !== 'custom'));
-  $('#xml-file-input').addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    $('#xml-file-name').textContent = file ? `${file.name} — ${(file.size / 1024).toFixed(1)} KB` : 'لم يتم اختيار ملف';
-    $('#xml-dropzone').classList.toggle('has-file', Boolean(file));
-  });
 
   $('#decode-form').addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (!$('#file-input').files.length) { toast('اختر ملف config.bin أولاً', 'error'); return; }
     const button = event.target.querySelector('button[type=submit]');
-    setBusy(button, true); alertBox.classList.add('d-none');
+    setBusy(button, true); alertBox.classList.add('d-none'); setStep(2);
     try {
       const response = await fetch('/api/decode', { method: 'POST', body: new FormData(event.target) });
       const data = await response.json();
@@ -191,10 +294,13 @@
       baseline = data.xml; clearSearch(); clearEditMarks();
       $('#editor-status').textContent = `تم الفك — ${metadata.used_key_source || 'بدون تشفير'}`;
       $('#payload-badge').textContent = `Payload ${metadata.payload_type}`; $('#payload-badge').classList.remove('d-none');
+      renderMeta(metadata);
       if (editPos) editPos.textContent = 'آخر تعديل: —';
       $('#download-xml').disabled = false; $('#encode-form-submit').disabled = false; syncEditor(); syncCursor();
-      showAlert('تم فك الملف بنجاح. يمكنك تعديل XML الآن.', 'success');
-    } catch (error) { showAlert(error.message); } finally { setBusy(button, false); }
+      setStep(3);
+      toast('تم فك الملف بنجاح', 'success');
+      document.getElementById('editor-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (error) { showAlert(error.message); toast(error.message, 'error', 4500); } finally { setBusy(button, false); }
   });
 
   function metadataForm() {
@@ -208,10 +314,18 @@
     if (!response.ok) { const data = await response.json().catch(() => ({})); throw new Error(data.error || 'تعذر إنشاء الملف'); }
     const blob = await response.blob(); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = filename; link.click(); URL.revokeObjectURL(url);
   }
-  $('#download-xml').addEventListener('click', async () => { try { await download('/api/download-xml', 'config.xml', metadataForm()); baseline = editor.getValue(); clearEditMarks(); syncEditor(); showAlert('تم تنزيل ملف XML.', 'success'); } catch (e) { showAlert(e.message); } });
+  $('#download-xml').addEventListener('click', async () => {
+    try { await download('/api/download-xml', 'config.xml', metadataForm()); baseline = editor.getValue(); clearEditMarks(); syncEditor(); setStep(4); toast('تم تنزيل config.xml', 'success'); }
+    catch (e) { showAlert(e.message); toast(e.message, 'error'); }
+  });
   $('#encode-form-submit').addEventListener('click', async () => {
     const button = $('#encode-form-submit'); setBusy(button, true); alertBox.classList.add('d-none');
-    try { await download('/api/encode', 'config.bin', metadataForm()); baseline = editor.getValue(); clearEditMarks(); syncEditor(); showAlert('تمت إعادة التشفير وتنزيل config.bin.', 'success'); } catch (e) { showAlert(e.message); } finally { setBusy(button, false); }
+    try {
+      if (!editor.getValue().trim()) throw new Error('محرر XML فارغ.');
+      await download('/api/encode', 'config.bin', metadataForm());
+      baseline = editor.getValue(); clearEditMarks(); syncEditor(); setStep(4);
+      toast('تمت إعادة التشفير وتنزيل config.bin', 'success');
+    } catch (e) { showAlert(e.message); toast(e.message, 'error'); } finally { setBusy(button, false); }
   });
   $('#xml-upload-form').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -219,7 +333,7 @@
     setBusy(button, true); alertBox.classList.add('d-none');
     try {
       await download('/api/encode-upload', 'config.bin', new FormData(event.target));
-      showAlert('تم تشفير ملف XML وتنزيل config.bin بنجاح.', 'success');
-    } catch (error) { showAlert(error.message); } finally { setBusy(button, false); }
+      toast('تم تشفير XML وتنزيل config.bin', 'success');
+    } catch (error) { showAlert(error.message); toast(error.message, 'error'); } finally { setBusy(button, false); }
   });
 })();
