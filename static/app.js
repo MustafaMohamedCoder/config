@@ -113,9 +113,15 @@
     const lc = $('#line-count');
     if (lc) lc.textContent = `${editor.lineCount().toLocaleString('ar')} سطر`;
     const dirty = val !== baseline;
+    const hasContent = val.trim().length > 0;
     if (dirtyBadge) dirtyBadge.classList.toggle('d-none', !dirty);
-    if (emptyState) emptyState.classList.toggle('d-none', val.trim().length > 0);
-    if (val.trim().length > 0) setStep(dirty ? 3 : 3);
+    if (emptyState) emptyState.classList.toggle('d-none', hasContent);
+    // السماح بالعمل اليدوي: تفعيل الأزرار عند وجود محتوى حتى بدون فك ملف
+    const dl = $('#download-xml');
+    const enc = $('#encode-form-submit');
+    if (dl) dl.disabled = !hasContent;
+    if (enc) enc.disabled = !hasContent;
+    if (hasContent) setStep(dirty ? 3 : 3);
   }
   function syncCursor() {
     const c = editor.getCursor();
@@ -203,9 +209,11 @@
       if (e.key === 'Escape') { clearSearch(); searchInput.value = ''; editor.focus(); }
     });
   }
-  $('#search-next').addEventListener('click', () => { editor.focus(); if (!searchMarks.length) runSearch(true); else jumpToHit(searchIndex + 1); });
-  $('#search-prev').addEventListener('click', () => { editor.focus(); if (!searchMarks.length) runSearch(true); else jumpToHit(searchIndex - 1); });
+  $('#search-next').addEventListener('click', () => { if (!searchMarks.length) runSearch(true); else jumpToHit(searchIndex + 1); });
+  $('#search-prev').addEventListener('click', () => { if (!searchMarks.length) runSearch(true); else jumpToHit(searchIndex - 1); });
   $('#search-clear').addEventListener('click', () => { clearSearch(); searchInput.value = ''; searchInput.focus(); });
+  const emptyDismiss = $('#empty-dismiss');
+  if (emptyDismiss) emptyDismiss.addEventListener('click', () => { if (emptyState) emptyState.classList.add('d-none'); editor.focus(); });
 
   /* ---------- Toolbar ---------- */
   $('#btn-copy').addEventListener('click', async () => {

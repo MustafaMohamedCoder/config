@@ -10,8 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/theme/eclipse.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/dialog/dialog.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/search/matchesonscrollbar.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
@@ -81,7 +81,7 @@
 
       <section class="col-lg-8">
         <div class="panel editor-panel h-100" id="editor-panel">
-          <div class="panel-heading"><span class="icon">&lt;/&gt;</span><div><h2>محرر XML</h2><small id="editor-status">بانتظار فك ملف — ارفع config.bin للبدء</small></div><span id="payload-badge" class="badge text-bg-secondary ms-auto d-none"></span><span id="dirty-badge" class="dirty-badge d-none" title="يوجد تعديلات غير محفوظة"><i></i>مُعدَّل</span></div>
+          <div class="panel-heading"><span class="icon">&lt;/&gt;</span><div><h2>محرر XML</h2><small id="editor-status">بانتظار فك ملف — ارفع config.bin للبدء</small></div><span class="editor-badges"><span id="payload-badge" class="badge text-bg-secondary d-none"></span><span id="dirty-badge" class="dirty-badge d-none" title="يوجد تعديلات غير محفوظة"><i></i>مُعدَّل</span></span></div>
           <div id="meta-grid" class="meta-grid d-none"></div>
           <div class="editor-toolbar" role="toolbar" aria-label="أدوات المحرر">
             <div class="search-bar" role="search" aria-label="بحث داخل XML">
@@ -106,10 +106,11 @@
             <div id="editor-empty" class="editor-empty">
               <div class="empty-art">📦</div>
               <b>لا يوجد ملف بعد</b>
-              <p>ارفع <code>config.bin</code> من اليسار وسيظهر محتوى XML هنا للتعديل والبحث.</p>
+              <p>ارفع <code>config.bin</code> من اليسار — أو الصق XML هنا مباشرة.</p>
+              <button id="empty-dismiss" type="button" class="btn btn-sm btn-primary">ابدأ الكتابة يدوياً</button>
             </div>
           </div>
-          <div class="editor-footer"><span id="cursor-pos" dir="ltr">Ln 1, Col 1</span><span id="edit-pos">آخر تعديل: —</span><span id="line-count">0 سطر</span><span id="xml-size">0 بايت</span></div>
+          <div class="editor-footer"><span id="cursor-pos" dir="ltr">Ln 1, Col 1</span><span id="edit-pos" dir="rtl" lang="ar">آخر تعديل: —</span><span id="line-count">0 سطر</span><span id="xml-size">0 بايت</span></div>
           <div class="editor-actions">
             <button id="btn-validate" class="btn btn-outline-light" type="button">✔ تحقق من XML</button>
             <button id="download-xml" class="btn btn-outline-light" type="button" disabled>⬇ تنزيل XML</button>
