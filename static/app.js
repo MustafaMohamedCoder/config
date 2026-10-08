@@ -50,7 +50,6 @@
   });
   let metadata = {};
   let baseline = '';
-  let wrapOn = false;
   const editedLines = new Set();
   function clearEditMarks() {
     editedLines.forEach((ln) => { try { editor.removeLineClass(ln, 'background', 'edited-line'); } catch (_) {} try { editor.setGutterMarker(ln, 'edit-gutter', null); } catch (_) {} });
@@ -220,37 +219,6 @@
     try { await navigator.clipboard.writeText(editor.getValue()); toast('تم نسخ XML إلى الحافظة', 'success'); }
     catch (_) { editor.execCommand('selectAll'); document.execCommand('copy'); toast('تم نسخ XML', 'success'); }
   });
-  $('#btn-beautify').addEventListener('click', () => {
-    try {
-      const raw = editor.getValue().trim();
-      if (!raw) { toast('المحرر فارغ', 'error'); return; }
-      let indent = 0;
-      const formatted = raw.replace(/>\s*</g, '><').replace(/(<\/?[^>]+>)/g, (m) => {
-        let pad = '';
-        if (/^<\//.test(m)) indent = Math.max(0, indent - 1);
-        pad = '  '.repeat(indent);
-        if (/^<[^!?/][^>]*[^/]>$/.test(m)) indent += 1;
-        return '\n' + pad + m;
-      }).trim();
-      const cur = editor.getCursor();
-      editor.setValue(formatted);
-      editor.setCursor(cur);
-      toast('تم تنسيق XML', 'success');
-    } catch (e) { toast('تعذر التنسيق — تحقق من XML', 'error'); }
-  });
-  $('#btn-wrap').addEventListener('click', (e) => {
-    wrapOn = !wrapOn;
-    editor.setOption('lineWrapping', wrapOn);
-    e.currentTarget.classList.toggle('on', wrapOn);
-  });
-  $('#btn-full').addEventListener('click', () => {
-    const panel = $('#editor-panel');
-    const on = panel.classList.toggle('fullscreen');
-    $('#btn-full').textContent = on ? '✕ خروج' : '⛶ ملء';
-    editor.refresh();
-    editor.focus();
-  });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { $('#editor-panel').classList.remove('fullscreen'); $('#btn-full').textContent = '⛶ ملء'; } });
   $('#btn-validate').addEventListener('click', () => {
     const v = editor.getValue().trim();
     if (!v) { toast('المحرر فارغ — ارفع ملفاً أولاً', 'error'); return; }
