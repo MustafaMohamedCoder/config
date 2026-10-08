@@ -27,6 +27,7 @@
     indentUnit: 2,
     tabSize: 2,
     styleActiveLine: true,
+    gutters: ['CodeMirror-linenumbers', 'edit-gutter'],
     extraKeys: {
       'Ctrl-F': 'findPersistent',
       'Cmd-F': 'findPersistent',
@@ -36,7 +37,22 @@
   });
   let metadata = {};
   let baseline = '';
-  let lastEditMark = null;
+  const editedLines = new Set();
+  function clearEditMarks() {
+    editedLines.forEach((ln) => { try { editor.removeLineClass(ln, 'background', 'edited-line'); } catch (_) {} try { editor.setGutterMarker(ln, 'edit-gutter', null); } catch (_) {} });
+    editedLines.clear();
+  }
+  function markEdited(line) {
+    try {
+      editor.addLineClass(line, 'background', 'edited-line');
+      const dot = document.createElement('div');
+      dot.className = 'edit-dot';
+      dot.textContent = '●';
+      dot.title = 'سطر مُعدَّل';
+      editor.setGutterMarker(line, 'edit-gutter', dot);
+      editedLines.add(line);
+    } catch (_) {}
+  }
 
   applyTheme(savedTheme);
   if (themeBtn) themeBtn.addEventListener('click', () => {
@@ -74,12 +90,13 @@
       const now = new Date().toLocaleTimeString('ar');
       editPos.textContent = `آخر تعديل: سطر ${change.from.line + 1} • ${now}`;
     }
-    // مؤشر بصري على السطر المعدّل
-    if (lastEditMark) { try { lastEditMark.clear(); } catch (_) {} lastEditMark = null; }
+    // مؤشر بصري ثابت على كل سطر مُعدَّل (خلفية + نقطة في الهامش)
     try {
-      const line = change ? change.from.line : editor.getCursor().line;
-      lastEditMark = editor.addLineClass(line, 'background', 'edited-line');
-      editor.addLineWidget(line, (() => { const s = document.createElement('span'); return s; })(), {});
+      const from = change ? change.from.line : editor.getCursor().line;
+      const to = change ? change.to.line : from;
+      for (let ln = from; ln <= to; ln++) markEdited(ln);
+      // إبقاء السطر الحالي ظاهراً
+      editor.scrollIntoView({ from: editor.getCursor(), to: editor.getCursor() }, 60);
     } catch (_) {}
   });
   editor.on('cursorActivity', syncCursor);
@@ -171,7 +188,7 @@
       if (!response.ok || !data.ok) throw new Error(data.error || 'تعذر فك الملف');
       metadata = data.metadata;
       editor.setValue(data.xml); editor.setCursor({ line: 0, ch: 0 });
-      baseline = data.xml; clearSearch();
+      baseline = data.xml; clearSearch(); clearEditMarks();
       $('#editor-status').textContent = `تم الفك — ${metadata.used_key_source || 'بدون تشفير'}`;
       $('#payload-badge').textContent = `Payload ${metadata.payload_type}`; $('#payload-badge').classList.remove('d-none');
       if (editPos) editPos.textContent = 'آخر تعديل: —';
@@ -191,10 +208,10 @@
     if (!response.ok) { const data = await response.json().catch(() => ({})); throw new Error(data.error || 'تعذر إنشاء الملف'); }
     const blob = await response.blob(); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = filename; link.click(); URL.revokeObjectURL(url);
   }
-  $('#download-xml').addEventListener('click', async () => { try { await download('/api/download-xml', 'config.xml', metadataForm()); baseline = editor.getValue(); syncEditor(); showAlert('تم تنزيل ملف XML.', 'success'); } catch (e) { showAlert(e.message); } });
+  $('#download-xml').addEventListener('click', async () => { try { await download('/api/download-xml', 'config.xml', metadataForm()); baseline = editor.getValue(); clearEditMarks(); syncEditor(); showAlert('تم تنزيل ملف XML.', 'success'); } catch (e) { showAlert(e.message); } });
   $('#encode-form-submit').addEventListener('click', async () => {
     const button = $('#encode-form-submit'); setBusy(button, true); alertBox.classList.add('d-none');
-    try { await download('/api/encode', 'config.bin', metadataForm()); baseline = editor.getValue(); syncEditor(); showAlert('تمت إعادة التشفير وتنزيل config.bin.', 'success'); } catch (e) { showAlert(e.message); } finally { setBusy(button, false); }
+    try { await download('/api/encode', 'config.bin', metadataForm()); baseline = editor.getValue(); clearEditMarks(); syncEditor(); showAlert('تمت إعادة التشفير وتنزيل config.bin.', 'success'); } catch (e) { showAlert(e.message); } finally { setBusy(button, false); }
   });
   $('#xml-upload-form').addEventListener('submit', async (event) => {
     event.preventDefault();
