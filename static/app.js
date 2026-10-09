@@ -129,7 +129,7 @@
       p.classList.toggle('active', Number(p.getAttribute('data-panel')) === n);
     });
     setStep(n);
-    if (n === 3) setTimeout(() => { try { editor.refresh(); } catch (_) {} }, 50);
+    if (n === 5) renderAllThenHide(() => {});
     const w = $('#wizard');
     if (w && fromUser) w.scrollIntoView({ behavior: 'smooth', block: 'start' });
     return true;
@@ -412,65 +412,23 @@
     clearEditMarks(); clearSearch(); syncEditor(); syncCursor();
   });
 
-  /* ---------- List modal (wifi / diff) ---------- */
-  const listModal = $('#list-modal');
-  const listBody = $('#list-modal-body');
-  const listTitle = $('#list-modal-title');
-  function openList(title, rows) {
-    if (!listModal) return;
-    listTitle.textContent = title;
-    listBody.innerHTML = '';
-    if (!rows.length) {
-      listBody.innerHTML = '<p class="empty-list">لا توجد نتائج — ارفع ملفاً أولاً.</p>';
-    } else {
-      rows.slice(0, 300).forEach(([ln, text]) => {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'list-row';
-        b.innerHTML = `<span class="ln" dir="ltr">${ln + 1}</span><span class="tx" dir="ltr"></span>`;
-        b.querySelector('.tx').textContent = text.trim().slice(0, 160);
-        b.addEventListener('click', () => {
-          closeList();
-          editor.setCursor({ line: ln, ch: 0 });
-          editor.focus();
-          editor.scrollIntoView({ from: { line: ln, ch: 0 }, to: { line: ln, ch: 0 } }, 120);
-        });
-        listBody.appendChild(b);
-      });
-      if (rows.length > 300) {
-        const p = document.createElement('p');
-        p.className = 'empty-list';
-        p.textContent = `يعرض أول 300 من ${rows.length} نتيجة — استخدم البحث للتضييق.`;
-        listBody.appendChild(p);
-      }
+  /* ---------- Editor loading (عرض البيانات مرة واحدة) ---------- */
+  const editorLoading = $('#editor-loading');
+  function editorBusy(on) {
+    if (editorLoading) {
+      editorLoading.classList.toggle('d-none', !on);
+      editorLoading.setAttribute('aria-hidden', on ? 'false' : 'true');
     }
-    listModal.classList.remove('d-none');
   }
-  function closeList() { if (listModal) listModal.classList.add('d-none'); }
-  const listClose = $('#list-modal-close');
-  if (listClose) listClose.addEventListener('click', closeList);
-  if (listModal) listModal.addEventListener('click', (e) => { if (e.target === listModal) closeList(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeList(); });
-  const btnWifi = $('#btn-wifi');
-  if (btnWifi) btnWifi.addEventListener('click', () => {
-    const val = editor.getValue();
-    if (!val.trim()) { toast('المحرر فارغ — ارفع ملفاً أولاً', 'error'); return; }
-    const rows = [];
-    val.split('\n').forEach((line, i) => { if (/ssid|presharedkey|password|wpakey|wepkey|wlan|wifaci|authkey/i.test(line)) rows.push([i, line]); });
-    openList(`📶 أسطر الواي فاي وكلمات السر (${rows.length})`, rows);
-  });
-  const btnDiff = $('#btn-diff');
-  if (btnDiff) btnDiff.addEventListener('click', () => {
-    if (!baseline) { toast('لا يوجد ملف أصلي للمقارنة', 'error'); return; }
-    const a = baseline.split('\n');
-    const b = editor.getValue().split('\n');
-    const rows = [];
-    const n = Math.max(a.length, b.length);
-    for (let i = 0; i < n && rows.length < 2000; i++) {
-      if ((a[i] || '') !== (b[i] || '')) rows.push([i, (b[i] === undefined ? '— سطر محذوف —' : b[i]) || '— سطر فارغ —']);
-    }
-    openList(`⇄ الأسطر المعدلة (${rows.length})`, rows.length ? rows : [[-1, 'لا توجد اختلافات — الملف مطابق للأصل']]);
-  });
+  function renderAllThenHide(fn) {
+    editorBusy(true);
+    setTimeout(() => {
+      try { fn(); } finally {
+        try { editor.refresh(); } catch (_) {}
+        requestAnimationFrame(() => requestAnimationFrame(() => editorBusy(false)));
+      }
+    }, 60);
+  }
 
   /* ---------- Full-page drag & drop ---------- */
   const pageDrop = $('#page-drop');
@@ -549,6 +507,23 @@
       ispFieldHint();
     });
   });
+  const passToggle = $('#pass-toggle');
+  if (passToggle) passToggle.addEventListener('click', () => {
+    const p = $('#isp-password');
+    if (!p) return;
+    const show = p.type === 'password';
+    p.type = show ? 'text' : 'password';
+    passToggle.textContent = show ? '🙈' : '👁';
+    passToggle.setAttribute('aria-label', show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
+  });
+  // غير WE: حقل الرقم لا يقبل إلا أرقاماً فقط
+  const ispUserInput = $('#isp-username');
+  if (ispUserInput) ispUserInput.addEventListener('input', () => {
+    if (selectedIsp && ISP_PRESETS[selectedIsp] && ISP_PRESETS[selectedIsp].landlineOnly) {
+      const ar = '٠١٢٣٤٥٦٧٨٩';
+      ispUserInput.value = ispUserInput.value.replace(/[٠-٩]/g, (d) => String(ar.indexOf(d))).replace(/\D/g, '').slice(0, 11);
+    }
+  });
   const FULL_USER_RE = /^[^@\s<>"]+@[A-Za-z0-9.-]+\.(?:net\.eg|com\.eg|org\.eg|edu\.eg|net|com|org)$/i;
   // نطاق التعديل: اشتراك الإنترنت (PPPoE/WAN) فقط — الواي فاي ودخول الراوتر مستثنيان دائماً
   const WAN_CTX = /wan|ppp|pppoe|broadband|internet|connection|dial/i;
@@ -623,6 +598,7 @@
     const srcPreset = ISP_PRESETS[selectedSource];
     const rawUser = ($('#isp-username').value || '').trim();
     const manualPass = $('#isp-password').value || '';
+    if (!manualPass) { toast('أدخل كلمة سر الإنترنت — الحقل إجباري', 'error'); return; }
     let manualUser = null;
     if (rawUser) {
       if (preset.landlineOnly) {
@@ -676,9 +652,11 @@
       return;
     }
     silentSet = true;
-    editor.setValue(out);
-    editor.setCursor({ line: 0, ch: 0 });
-    silentSet = false;
+    renderAllThenHide(() => {
+      editor.setValue(out);
+      editor.setCursor({ line: 0, ch: 0 });
+      silentSet = false;
+    });
     clearEditMarks();
     syncEditor(); syncCursor();
     const ep = $('#edit-pos');
@@ -755,6 +733,14 @@
     } catch (_) { box.textContent = ''; box.className = 'file-check'; }
   }
 
+  const waCopy = $('#wa-copy');
+  if (waCopy) waCopy.addEventListener('click', async () => {
+    const h = ($('#wa-handle').textContent || '').trim();
+    try { await navigator.clipboard.writeText(h); toast('تم نسخ معرف واتساب', 'success'); }
+    catch (_) { toast(h, 'info', 4500); }
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && confirmModal && !confirmModal.classList.contains('d-none')) closeConfirm(); });
+
   /* ---------- File inputs ---------- */
   function bindFile(inputSel, nameSel, zoneSel, kind) {
     const input = $(inputSel);
@@ -785,15 +771,17 @@
     event.preventDefault();
     if (!$('#file-input').files.length) { toast('اختر ملف config.bin أولاً', 'error'); return; }
     const button = event.target.querySelector('button[type=submit]');
-    setBusy(button, true); progressShow('decode-progress', true); alertBox.classList.add('d-none'); setStep(2);
+    setBusy(button, true); progressShow('decode-progress', true); editorBusy(true); alertBox.classList.add('d-none'); setStep(2);
     try {
       const response = await fetch('/api/decode', { method: 'POST', body: new FormData(event.target) });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error || 'تعذر فك الملف');
       metadata = data.metadata;
       silentSet = true;
-      editor.setValue(data.xml); editor.setCursor({ line: 0, ch: 0 });
-      silentSet = false;
+      renderAllThenHide(() => {
+        editor.setValue(data.xml); editor.setCursor({ line: 0, ch: 0 });
+        silentSet = false;
+      });
       baseline = data.xml; clearSearch(); clearEditMarks();
       $('#editor-status').textContent = `تم الفك — ${metadata.used_key_source || 'بدون تشفير'}`;
       $('#payload-badge').textContent = `Payload ${metadata.payload_type}`; $('#payload-badge').classList.remove('d-none');
@@ -803,7 +791,7 @@
       setStep(2);
       toast('تم فك الملف بنجاح', 'success');
       goStep(2, false);
-    } catch (error) { showAlert(error.message); toast(error.message, 'error', 4500); } finally { setBusy(button, false); progressShow('decode-progress', false); }
+    } catch (error) { editorBusy(false); showAlert(error.message); toast(error.message, 'error', 4500); } finally { setBusy(button, false); progressShow('decode-progress', false); }
   });
 
   function metadataForm() {

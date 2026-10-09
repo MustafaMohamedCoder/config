@@ -142,7 +142,7 @@
         <p class="step-hint">💬 البيانات دي بتوصلك في رسالة من الشركة الجديدة بعد التعاقد — انقلها زي ما هي.</p>
         <div class="panel">
           <div class="panel-heading"><span class="icon">👤</span><div><h2>بيانات اشتراكك لدى الشركة المطلوبة</h2><small>اكتب اسم المستخدم وكلمة المرور من رسالة التفعيل</small></div><span class="step-num">4</span></div>
-          <div class="advanced-grid"><div class="field"><label for="isp-username" id="isp-username-label">رقم التليفون الأرضي بكود المحافظة <small>(مثال: 0401234567)</small></label><input id="isp-username" class="form-control" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="0401234567"></div><div class="field"><label for="isp-password">كلمة سر الإنترنت <small>(اختياري)</small></label><input id="isp-password" type="password" class="form-control" dir="ltr" autocomplete="off" placeholder="••••••••"></div></div>
+          <div class="advanced-grid"><div class="field"><label for="isp-username" id="isp-username-label">رقم التليفون الأرضي بكود المحافظة <small>(مثال: 0401234567)</small></label><input id="isp-username" class="form-control" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="0401234567"></div><div class="field"><label for="isp-password">كلمة سر الإنترنت</label><div class="pass-wrap"><input id="isp-password" type="password" class="form-control" dir="ltr" autocomplete="off" placeholder="••••••••"><button id="pass-toggle" type="button" title="إظهار / إخفاء كلمة المرور" aria-label="إظهار أو إخفاء كلمة المرور">👁</button></div></div></div>
           <p class="isp-note">⚠️ لشركات <b>فودافون وأورانج واتصالات</b> أدخل <b>رقم التليفون الأرضي بكود المحافظة فقط</b> (مثل 0401234567) وسيُركَّب على نطاق الشركة تلقائياً. لـ <b>WE</b> أدخل اسم المستخدم كاملاً كما أرسلته الشركة. 🛡 التعديل <b>حصري على اسم المستخدم وكلمة المرور الخاصين باشتراك الإنترنت (PPPoE)</b> — لا يمس اسم الواي فاي أو كلمته، ولا اسم دخول الراوتر أو كلمته.</p>
           <p class="isp-note we-note">💡 <b>بالنسبة لشركة WE</b> يمكنك الحصول على اسم المستخدم وكلمة المرور عن طريق تطبيق <b>ماي وي (My WE)</b> أو التواصل مع خدمة العملاء. <b>أما باقي الشركات</b> فيكون اسم المستخدم هو <b>الرقم الأرضي مسبوقًا بكود المحافظة</b> وكلمة المرور <b>123</b>.</p>
           <button id="isp-apply" class="btn btn-primary w-100 mt-2" type="button">✨ تعديل تلقائي للشركة المختارة</button>
@@ -188,12 +188,11 @@
             </div>
             <div class="tool-btns">
               <button id="btn-copy" type="button" title="نسخ XML">📋 نسخ</button>
-              <button id="btn-wifi" type="button" title="عرض أسطر الواي فاي وكلمات السر فقط">📶 واي فاي</button>
-              <button id="btn-diff" type="button" title="مقارنة التعديلات مع الأصل">⇄ التعديلات</button>
             </div>
           </div>
           <div class="editor-wrap" id="editor-wrap">
             <textarea id="xml-editor" aria-label="محرر XML"></textarea>
+            <div id="editor-loading" class="editor-loading d-none" aria-hidden="true"><span class="spinner-border text-info" role="status"></span><p>⏳ جاري تحميل البيانات… انتظر اكتمال العرض</p></div>
             <div id="editor-empty" class="editor-empty">
               <div class="empty-art">📦</div>
               <b>لا يوجد ملف بعد</b>
@@ -226,7 +225,7 @@
             <button id="finish-dl-xml" class="btn btn-outline-light" type="button">⬇ تنزيل config.xml</button>
             <button id="finish-dl-bin" class="btn btn-success" type="button">🔒 تنزيل config.bin <span class="spinner-border spinner-border-sm d-none"></span></button>
           </div>
-          <button id="wizard-restart" class="btn btn-link restart-link" type="button">↺ بدء عملية جديدة</button>
+          <button id="wizard-restart" class="btn btn-primary btn-download-big" type="button">🏠 البدء — رجوع للخطوة الأولى</button>
         </div>
         <div class="wizard-nav">
           <button type="button" class="btn btn-outline-light" data-back="5">→ رجوع للمحرر</button>
@@ -234,29 +233,14 @@
       </section>
     </div>
 
-    <section class="panel faq-panel mt-4" aria-label="الأسئلة الشائعة">
-      <div class="panel-heading"><span class="icon">؟</span><div><h2>أسئلة شائعة — راوترات مصر</h2><small>حلول أخطاء WE و Orange و Etisalat</small></div></div>
-      <details open><summary>فشل الفك بوضع Default — ماذا أفعل؟</summary><p>اختر موديل راوترك من قائمة مصدر المفتاح (مثلاً <code>ZXHN H168N V3.5</code> لأجهزة WE). ملفات <b>Type 4</b> تحتاج <b>Serial</b> و<b>MAC</b> من الملصق خلف الراوتر.</p></details>
-      <details><summary>الملف يبدو Base64 (يبدأ بـ BAMC)؟</summary><p>ارفع ملف <code>config.bin</code> الثنائي الأصلي من صفحة الراوتر <code>192.168.1.1</code> وليس نسخة محفوظة كنص.</p></details>
-      <details><summary>النت فصل بعد استرجاع الملف الجديد؟</summary><p>غالباً تغيّرت بيانات <code>WAN</code> الخاصة بالشركة. أعد الملف الأصلي من نفس صفحة الاسترجاع، وعدّل لاحقاً اسم الواي فاي فقط (<code>SSID</code>).</p></details>
-      <details><summary>أين أجد كلمة سر الواي فاي؟</summary><p>بعد الفك ابحث بزر <b>📶 واي فاي</b> في المحرر — يعرض كل أسطر <code>SSID</code> و<code>PreSharedKey</code> للضغط والانتقال إليها.</p></details>
+    <section class="panel contact-panel mt-4" aria-label="تواصل واتساب">
+      <div class="panel-heading"><span class="icon">💬</span><div><h2>تواصل واتساب</h2><small>للاقتراحات وحل المشكلات</small></div></div>
+      <div class="contact-row"><code id="wa-handle" dir="ltr">@1mustafaMohammed1</code><button id="wa-copy" class="btn btn-success" type="button">📋 نسخ المعرف</button></div>
+      <p class="privacy-note">ابعت اقتراحك أو وصف المشكلة على واتساب بالمعرف أعلاه — ولو عندك رقم التواصل المباشر ابعته وسأحوله لزر محادثة فورية.</p>
     </section>
-    <section class="panel video-panel mt-4" aria-label="شرح بالفيديو">
-      <div class="panel-heading"><span class="icon">▶</span><div><h2>شرح بالفيديو — 30 ثانية</h2><small>ارفع config.bin ← عدّل ← شفّر ← استرجع في الراوتر</small></div></div>
-      <div class="video-placeholder" id="video-placeholder" role="button" tabindex="0" title="قريباً: فيديو الشرح">
-        <span class="play">▶</span>
-        <p>فيديو الشرح يُضاف هنا — ضع رابط يوتيوب الخاص بك مكان هذا الصندوق</p>
-      </div>
-    </section>
-    <footer class="mt-4"><span>للاستخدام على ملفات أجهزتك فقط.</span><span class="made-by">صُنع بـ <span class="red-heart">❤</span> مصطفي عبدالفتاح</span><a href="https://github.com/mkst/zte-config-utility" target="_blank" rel="noreferrer">المكتبة المرجعية ↗</a></footer>
+    <footer class="mt-4"><span class="made-by">صُنع بـ <span class="red-heart">❤</span> مصطفي عبدالفتاح</span></footer>
   </main>
   <div id="page-drop" class="page-drop d-none" aria-hidden="true"><div><b>⬇ أفلت الملف هنا</b><p><code>.bin</code> للفك • <code>.xml</code> للتشفير</p></div></div>
-  <div id="list-modal" class="list-modal d-none" role="dialog" aria-modal="true" aria-labelledby="list-modal-title">
-    <div class="list-modal-card">
-      <div class="list-modal-head"><b id="list-modal-title">نتائج</b><button id="list-modal-close" type="button" title="إغلاق">✕</button></div>
-      <div id="list-modal-body" class="list-modal-body"></div>
-    </div>
-  </div>
   <div id="confirm-modal" class="list-modal d-none" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
     <div class="list-modal-card">
       <div class="list-modal-head"><b id="confirm-title">👀 معاينة قبل التحميل</b><button id="confirm-close" type="button" title="إغلاق">✕</button></div>
