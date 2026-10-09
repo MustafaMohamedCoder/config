@@ -31,32 +31,52 @@
   <main class="container py-4 py-lg-5">
     <header class="hero mb-4">
       <div class="eyebrow">ZTE CONFIG STUDIO <span class="status-dot"></span> معالجة محلية</div>
-      <h1>حوّل إعدادات الراوتر<br><span>بدون مغادرة المتصفح</span></h1>
-      <p>ارفع نسخة <code>config.bin</code>، عدّل XML مباشرة، ثم أعد بناء الملف مع الحفاظ على بيانات الحمولة والتوقيع. لا تُرفع ملفاتك لأي خادم خارجي.</p>
+      <h1>حوّل إعدادات الراوتر<br><span>في 4 خطوات فقط</span></h1>
+      <p>اختر العملية، ارفع الملف، عدّل XML، ثم حمّل النتيجة — كل خطوة في شاشة مستقلة.</p>
       <div class="hero-tips">
         <span>🔒 خصوصية كاملة</span><span>⚡ فك وتشفير فوري</span><span>📱 يعمل على الجوال</span>
       </div>
     </header>
 
-    <details class="usage-box" open>
+    <details class="usage-box">
       <summary>📖 طريقة الاستخدام — اضغط للطي/الفتح</summary>
       <ol>
-        <li><b>ارفع</b> ملف <code>config.bin</code> من راوترك (ابدأ بوضع <b>Default</b>).</li>
-        <li><b>فك التشفير</b> — لو فشل جرّب مفتاح الموديل، وملفات Type 4 تحتاج Serial/MAC من ملصق الراوتر.</li>
-        <li><b>عدّل</b> XML (ابحث عن <code>SSID</code> أو <code>Password</code>) — لا تمس إعدادات <code>WAN</code> حتى لا يفصل النت.</li>
-        <li><b>شفّر</b> بزر <b>تعديل وتشفير مباشر</b> وحمّل <code>config.bin</code> الجديد، واحتفظ بالأصل دائماً.</li>
+        <li><b>اختر العملية:</b> فك <code>config.bin</code> أو تشفير <code>config.xml</code>.</li>
+        <li><b>ارفع الملف</b> واضبط المفتاح (ابدأ بوضع <b>Default</b>).</li>
+        <li><b>عدّل</b> XML (ابحث عن <code>SSID</code> أو <code>Password</code>) — لا تمس <code>WAN</code>.</li>
+        <li><b>حمّل النتيجة</b> من شاشة الإنهاء، واحتفظ بالأصل دائماً.</li>
       </ol>
     </details>
     <div id="toast-wrap" class="toast-wrap" aria-live="polite"></div>
     <div id="alert" class="alert d-none" role="alert"></div>
     <section class="step-strip mb-4" aria-label="خطوات الاستخدام" id="steps">
-      <div data-step="1" data-goto="decode-form" class="active" tabindex="0" role="button" title="انتقل لرفع الملف"><b>01</b><span>رفع الملف</span></div><i></i><div data-step="2" data-goto="decode-form" tabindex="0" role="button" title="انتقل لفك التشفير"><b>02</b><span>فك التشفير</span></div><i></i><div data-step="3" data-goto="editor-panel" tabindex="0" role="button" title="انتقل للمحرر"><b>03</b><span>تحرير XML</span></div><i></i><div data-step="4" data-goto="editor-panel" tabindex="0" role="button" title="انتقل لإعادة التشفير"><b>04</b><span>إعادة التشفير</span></div>
+      <div data-step="1" data-goto="1" class="active" tabindex="0" role="button" title="الخطوة 1: العملية"><b>01</b><span>العملية</span></div><i></i><div data-step="2" data-goto="2" tabindex="0" role="button" title="الخطوة 2: الملف"><b>02</b><span>الملف</span></div><i></i><div data-step="3" data-goto="3" tabindex="0" role="button" title="الخطوة 3: التحرير"><b>03</b><span>تحرير XML</span></div><i></i><div data-step="4" data-goto="4" tabindex="0" role="button" title="الخطوة 4: الإنهاء"><b>04</b><span>الإنهاء</span></div>
     </section>
 
-    <div class="row g-4 align-items-stretch">
-      <aside class="col-lg-4">
-        <form id="decode-form" class="panel">
-          <div class="panel-heading"><span class="icon">↧</span><div><h2>ملف المصدر</h2><small>فك تشفير نسخة الراوتر</small></div><span class="step-num">1</span></div>
+    <div id="wizard">
+      <!-- الخطوة 1: اختيار العملية -->
+      <section class="wpanel active" data-panel="1" aria-label="اختيار العملية">
+        <div class="op-cards">
+          <button type="button" class="op-card selected" data-op="decode" aria-pressed="true">
+            <span class="op-emoji">📦⬅🔓</span>
+            <b>فك config.bin</b>
+            <small>ارفع نسخة الراوتر واعرض XML للتعديل</small>
+          </button>
+          <button type="button" class="op-card" data-op="encode" aria-pressed="false">
+            <span class="op-emoji">📄⬅🔒</span>
+            <b>تشفير config.xml</b>
+            <small>ارفع XML جاهزاً ونزّل config.bin</small>
+          </button>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" class="btn btn-primary" id="to-step-2">التالي: الملف ←</button>
+        </div>
+      </section>
+
+      <!-- الخطوة 2: الملف والإعدادات -->
+      <section class="wpanel" data-panel="2" aria-label="الملف والإعدادات">
+        <form id="decode-form" class="panel" data-op-form="decode">
+          <div class="panel-heading"><span class="icon">↧</span><div><h2>ملف المصدر</h2><small>فك تشفير نسخة الراوتر</small></div><span class="step-num">2</span></div>
           <label class="dropzone" for="file-input" id="dropzone" tabindex="0" aria-label="منطقة رفع ملف config.bin">
             <input id="file-input" name="file" type="file" accept=".bin,application/octet-stream" required>
             <strong>اسحب config.bin إلى هنا</strong><span>أو اختره من جهازك • حتى 16MB</span><em id="file-name">لم يتم اختيار ملف</em>
@@ -70,7 +90,7 @@
           <div id="decode-progress" class="upload-progress d-none" aria-hidden="true"><i></i></div>
           <p class="privacy-note">🔒 لا تُحفظ الملفات على الخادم؛ تتم المعالجة في الذاكرة فقط.</p>
         </form>
-        <form id="xml-upload-form" class="panel mt-4">
+        <form id="xml-upload-form" class="panel mt-4 d-none" data-op-form="encode">
           <div class="panel-heading"><span class="icon">XML</span><div><h2>تشفير ملف XML</h2><small>ارفع XML جاهزاً ونزّل config.bin</small></div><span class="step-num">2</span></div>
           <label class="dropzone mini" for="xml-file-input" id="xml-dropzone" tabindex="0">
             <input id="xml-file-input" name="xml_file" type="file" accept=".xml,text/xml,application/xml" required>
@@ -90,9 +110,13 @@
           <b>💡 تلميح سريع</b>
           <p>ابدأ بوضع <b>Default</b>. لو فشل الفك جرّب مفتاح الموديل، وملفات Type 4 تحتاج Serial/MAC من ملصق الراوتر.</p>
         </div>
-      </aside>
+        <div class="wizard-nav">
+          <button type="button" class="btn btn-outline-light" data-back="1">→ رجوع</button>
+        </div>
+      </section>
 
-      <section class="col-lg-8">
+      <!-- الخطوة 3: تحرير XML -->
+      <section class="wpanel" data-panel="3" aria-label="تحرير XML">
         <div class="panel editor-panel h-100" id="editor-panel">
           <div class="panel-heading"><span class="icon">&lt;/&gt;</span><div><h2>محرر XML</h2><small id="editor-status">بانتظار فك ملف — ارفع config.bin للبدء</small></div><span class="editor-badges"><span id="payload-badge" class="badge text-bg-secondary d-none"></span><span id="dirty-badge" class="dirty-badge d-none" title="يوجد تعديلات غير محفوظة"><i></i>مُعدَّل</span></span></div>
           <div id="meta-grid" class="meta-grid d-none"></div>
@@ -118,7 +142,7 @@
             <div id="editor-empty" class="editor-empty">
               <div class="empty-art">📦</div>
               <b>لا يوجد ملف بعد</b>
-              <p>ارفع <code>config.bin</code> من اليسار — أو الصق XML هنا مباشرة.</p>
+              <p>ارجع للخطوة 2 وارفع <code>config.bin</code> — أو الصق XML هنا مباشرة.</p>
               <button id="empty-dismiss" type="button" class="btn btn-sm btn-primary">ابدأ الكتابة يدوياً</button>
             </div>
           </div>
@@ -129,8 +153,31 @@
             <button id="encode-form-submit" class="btn btn-success" type="button" disabled>🔒 تعديل وتشفير مباشر <span class="spinner-border spinner-border-sm d-none"></span></button>
           </div>
         </div>
+        <div class="wizard-nav">
+          <button type="button" class="btn btn-outline-light" data-back="2">→ رجوع</button>
+          <button type="button" class="btn btn-primary" id="to-step-4">التالي: الإنهاء ←</button>
+        </div>
+      </section>
+
+      <!-- الخطوة 4: الإنهاء -->
+      <section class="wpanel" data-panel="4" aria-label="الإنهاء والتحميل">
+        <div class="panel finish-panel">
+          <div class="finish-art">🎉</div>
+          <h2>اكتملت العملية</h2>
+          <p id="finish-summary" class="finish-summary">ملفك جاهز للتحميل.</p>
+          <div id="finish-meta" class="meta-grid"></div>
+          <div class="finish-actions">
+            <button id="finish-dl-xml" class="btn btn-outline-light" type="button">⬇ تنزيل config.xml</button>
+            <button id="finish-dl-bin" class="btn btn-success" type="button">🔒 تنزيل config.bin <span class="spinner-border spinner-border-sm d-none"></span></button>
+          </div>
+          <button id="wizard-restart" class="btn btn-link restart-link" type="button">↺ بدء عملية جديدة</button>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" class="btn btn-outline-light" data-back="3">→ رجوع للمحرر</button>
+        </div>
       </section>
     </div>
+
     <section class="panel faq-panel mt-4" aria-label="الأسئلة الشائعة">
       <div class="panel-heading"><span class="icon">؟</span><div><h2>أسئلة شائعة — راوترات مصر</h2><small>حلول أخطاء WE و Orange و Etisalat</small></div></div>
       <details open><summary>فشل الفك بوضع Default — ماذا أفعل؟</summary><p>اختر موديل راوترك من قائمة مصدر المفتاح (مثلاً <code>ZXHN H168N V3.5</code> لأجهزة WE). ملفات <b>Type 4</b> تحتاج <b>Serial</b> و<b>MAC</b> من الملصق خلف الراوتر.</p></details>

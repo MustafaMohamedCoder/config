@@ -83,16 +83,99 @@
     });
   }
   if (stepsEl) {
-    const go = (el) => {
-      const id = el.getAttribute('data-goto');
-      const t = id && document.getElementById(id);
-      if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
     stepsEl.querySelectorAll('[data-goto]').forEach((d) => {
-      d.addEventListener('click', () => go(d));
-      d.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(d); } });
+      d.addEventListener('click', () => goStep(Number(d.getAttribute('data-goto')), true));
+      d.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goStep(Number(d.getAttribute('data-goto')), true); } });
     });
   }
+
+  /* ---------- Wizard (تطبيق بخطوات) ---------- */
+  const wizardEl = $('#wizard');
+  let operation = 'decode';
+  try { operation = localStorage.getItem('zte-op') || 'decode'; } catch (_) {}
+  if (operation !== 'decode' && operation !== 'encode') operation = 'decode';
+  let wizardStep = 1;
+  function currentOp() { return operation; }
+  function applyOp() {
+    document.querySelectorAll('.op-card').forEach((c) => {
+      const on = c.getAttribute('data-op') === operation;
+      c.classList.toggle('selected', on);
+      c.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    const df = $('#decode-form'), xf = $('#xml-upload-form');
+    if (df) df.classList.toggle('d-none', operation !== 'decode');
+    if (xf) xf.classList.toggle('d-none', operation !== 'encode');
+    try { localStorage.setItem('zte-op', operation); } catch (_) {}
+  }
+  document.querySelectorAll('.op-card').forEach((c) => {
+    c.addEventListener('click', () => { operation = c.getAttribute('data-op'); applyOp(); });
+  });
+  function canEnter(n) {
+    if (n <= 2) return true;
+    const has = editor.getValue().trim().length > 0;
+    if (n === 3) {
+      if (!has && operation === 'decode') { toast('ارفع وفك ملفاً أولاً — أو اكتب XML يدوياً', 'error'); return false; }
+      return true;
+    }
+    if (n === 4) {
+      if (!has) { toast('لا يوجد ملف للإنهاء — أكمل الخطوات السابقة', 'error'); return false; }
+      return true;
+    }
+    return true;
+  }
+  function goStep(n, fromUser) {
+    n = Math.min(4, Math.max(1, n));
+    if (fromUser && !canEnter(n)) return false;
+    wizardStep = n;
+    if (wizardEl) wizardEl.querySelectorAll('.wpanel').forEach((p) => {
+      p.classList.toggle('active', Number(p.getAttribute('data-panel')) === n);
+    });
+    setStep(n);
+    if (n === 3) setTimeout(() => { try { editor.refresh(); } catch (_) {} }, 50);
+    const w = $('#wizard');
+    if (w && fromUser) w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return true;
+  }
+  const toStep2 = $('#to-step-2');
+  if (toStep2) toStep2.addEventListener('click', () => goStep(2, true));
+  const toStep4 = $('#to-step-4');
+  if (toStep4) toStep4.addEventListener('click', () => { fillFinish(); goStep(4, true); });
+  document.querySelectorAll('[data-back]').forEach((b) => {
+    b.addEventListener('click', () => goStep(Number(b.getAttribute('data-back')), false));
+  });
+  const restartBtn = $('#wizard-restart');
+  if (restartBtn) restartBtn.addEventListener('click', () => { goStep(1, false); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  function fillFinish() {
+    const bytes = new Blob([editor.getValue()]).size;
+    const s = $('#finish-summary');
+    if (s) {
+      s.textContent = operation === 'encode'
+        ? 'تم تشفير XML — حمّل config.bin من الأسفل.'
+        : `XML جاهز (${editor.lineCount().toLocaleString('ar')} سطر • ${bytes.toLocaleString('ar')} بايت) — حمّل النتيجة.`;
+    }
+    const fm = $('#finish-meta');
+    if (fm) {
+      fm.innerHTML = '';
+      if (metadata && metadata.signature) {
+        [['التوقيع', metadata.signature], ['الحمولة', 'Type ' + (metadata.payload_type ?? '—')], ['المفتاح', metadata.used_key_source || '—']].forEach(([k, v]) => {
+          const d = document.createElement('div');
+          d.className = 'meta-item';
+          d.innerHTML = `<small>${k}</small><b dir="auto"></b>`;
+          d.querySelector('b').textContent = String(v).slice(0, 48);
+          fm.appendChild(d);
+        });
+      }
+    }
+    const dlXml = $('#finish-dl-xml'), dlBin = $('#finish-dl-bin');
+    if (dlXml) dlXml.disabled = !editor.getValue().trim();
+    if (dlBin) dlBin.disabled = !editor.getValue().trim();
+  }
+  const finishDlXml = $('#finish-dl-xml');
+  if (finishDlXml) finishDlXml.addEventListener('click', () => $('#download-xml').click());
+  const finishDlBin = $('#finish-dl-bin');
+  if (finishDlBin) finishDlBin.addEventListener('click', () => $('#encode-form-submit').click());
+  applyOp();
+  goStep(1, false);
 
   /* ---------- Persist settings ---------- */
   const PREFS_KEY = 'zte-prefs';
@@ -368,14 +451,17 @@
     const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     if (!file) return;
     const name = (file.name || '').toLowerCase();
-    const target = (name.endsWith('.xml') ? $('#xml-file-input') : $('#file-input'));
+    const isXml = name.endsWith('.xml');
+    if (isXml && operation !== 'encode') { operation = 'encode'; applyOp(); }
+    if (!isXml && operation !== 'decode') { operation = 'decode'; applyOp(); }
+    const target = (isXml ? $('#xml-file-input') : $('#file-input'));
     if (!target) return;
     const dt = new DataTransfer();
     dt.items.add(file);
     target.files = dt.files;
     target.dispatchEvent(new Event('change'));
     toast('تم استلام الملف: ' + file.name, 'info');
-    if (!name.endsWith('.xml')) document.getElementById('decode-form').scrollIntoView({ behavior: 'smooth' });
+    goStep(2, false);
   });
 
   /* ---------- File inputs ---------- */
@@ -423,7 +509,7 @@
       $('#download-xml').disabled = false; $('#encode-form-submit').disabled = false; syncEditor(); syncCursor();
       setStep(3);
       toast('تم فك الملف بنجاح', 'success');
-      document.getElementById('editor-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      goStep(3, false);
     } catch (error) { showAlert(error.message); toast(error.message, 'error', 4500); } finally { setBusy(button, false); progressShow('decode-progress', false); }
   });
 
@@ -449,6 +535,7 @@
       await download('/api/encode', 'config.bin', metadataForm());
       baseline = editor.getValue(); clearEditMarks(); syncEditor(); setStep(4);
       toast('تمت إعادة التشفير وتنزيل config.bin', 'success');
+      fillFinish(); goStep(4, false);
     } catch (e) { showAlert(e.message); toast(e.message, 'error'); } finally { setBusy(button, false); }
   });
   $('#xml-upload-form').addEventListener('submit', async (event) => {
@@ -458,6 +545,7 @@
     try {
       await download('/api/encode-upload', 'config.bin', new FormData(event.target));
       toast('تم تشفير XML وتنزيل config.bin', 'success');
+      fillFinish(); goStep(4, false);
     } catch (error) { showAlert(error.message); toast(error.message, 'error'); } finally { setBusy(button, false); progressShow('encode-progress', false); }
   });
 })();
