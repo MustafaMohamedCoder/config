@@ -82,6 +82,13 @@ code { color:var(--cyan); }
 .isp-card:hover { border-color:var(--cyan); transform:translateY(-2px); }
 .isp-card.selected { border-color:var(--green); background:var(--panel); box-shadow:0 0 0 3px rgba(101,223,165,.25); }
 .isp-logo { font-size:1.7rem; }
+.isp-badge { width:46px; height:46px; border-radius:50%; display:grid; place-items:center; color:#fff; font-weight:800; font-size:.95rem; background:#3a4653; transition:background .25s, transform .25s; }
+.isp-card:hover .isp-badge { transform:scale(1.08); }
+.isp-card:hover .isp-badge.we, .isp-card.selected .isp-badge.we { background:#6a2c91; }
+.isp-card:hover .isp-badge.vodafone, .isp-card.selected .isp-badge.vodafone { background:#e60000; }
+.isp-card:hover .isp-badge.orange, .isp-card.selected .isp-badge.orange { background:#ff7900; }
+.isp-card:hover .isp-badge.etisalat, .isp-card.selected .isp-badge.etisalat { background:#007a3d; }
+[data-theme="light"] .isp-badge { background:#8a97a5; }
 .isp-card b { font-size:.95rem; }
 .isp-card small { color:var(--muted); font-size:.7rem; }
 .isp-note { color:var(--muted); font-size:.78rem; line-height:1.9; margin:.8rem 0 0; }
