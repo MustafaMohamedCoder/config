@@ -656,6 +656,10 @@
       if (doc.querySelector('parsererror')) throw new Error('parse');
       ispPatchDom(doc, manualUser || null, manualPass || null, preset.domain, changes, stats, true, preset.landlineOnly);
       if (!changes.length) { broadMode = true; ispPatchDom(doc, manualUser || null, manualPass || null, preset.domain, changes, stats, false, preset.landlineOnly); }
+      // ضمان: حدّث كلمة سر الاشتراك بما أدخله المستخدم حتى لو لم تتغير الأسماء
+      if (manualPass && !changes.some((c) => c[0] === 'كلمة سر الاشتراك')) {
+        ispPatchPassword(doc.documentElement, manualPass, changes, stats);
+      }
       out = new XMLSerializer().serializeToString(doc);
       new DOMParser().parseFromString(out, 'text/xml').querySelector('parsererror') && (() => { throw new Error('parse'); })();
     } catch (_) {
