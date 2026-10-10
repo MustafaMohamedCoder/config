@@ -59,8 +59,8 @@ code { color:var(--cyan); }
 /* password show/hide */
 .pass-wrap { position:relative; }
 .pass-wrap .form-control { padding-inline-end:2.6rem; }
-#pass-toggle { position:absolute; inset-inline-end:.4rem; top:50%; transform:translateY(-50%); border:0; background:transparent; font-size:1.05rem; cursor:pointer; line-height:1; opacity:.8; }
-#pass-toggle:hover { opacity:1; }
+#pass-toggle { position:absolute; inset-inline-end:.4rem; top:50%; transform:translateY(-50%); border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:.25rem .45rem; font-size:1.05rem; cursor:pointer; line-height:1; opacity:1; }
+#pass-toggle:hover { border-color:var(--cyan); }
 /* whatsapp contact */
 .contact-row { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; }
 .contact-row code { font-size:1rem; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:.4rem .8rem; }

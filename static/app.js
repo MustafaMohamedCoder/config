@@ -563,12 +563,69 @@
   function ctxPath(el) {
     const parts = [];
     let n = el;
-    while (n && n.nodeType === 1 && parts.length < 6) { parts.unshift(n.tagName); n = n.parentElement; }
+    while (n && n.nodeType === 1 && parts.length < 6) {
+      let s = n.tagName;
+      try {
+        const nm = n.getAttribute && (n.getAttribute('name') || n.getAttribute('Name'));
+        if (nm) s += '[' + String(nm).slice(0, 24) + ']';
+      } catch (_) {}
+      parts.unshift(s);
+      n = n.parentElement;
+    }
     return parts.join(' > ');
   }
   function ispPatchDom(doc, newUser, newPass, domain, changes, stats, strict, bare) {
     const els = doc.getElementsByTagName('*');
     const seen = new Set();
+    const dmName = (el) => {
+      try { return (el.getAttribute && (el.getAttribute('name') || el.getAttribute('Name'))) || ''; } catch (_) { return ''; }
+    };
+    // بنية ZTE الحقيقية: <Tbl name="WANPPP"><Row><DM name="UserName" val="..."/>
+    const dmUser = (val) => {
+      if (!val) return null;
+      const t = String(val).trim();
+      if (FULL_USER_RE.test(t)) return t.split('@')[0];
+      if (/^\d{6,15}$/.test(t)) return t; // رقم مجرد كما في ملفات WANPPP الحقيقية
+      return null;
+    };
+    for (let i = 0; i < els.length; i++) {
+      const el = els[i];
+      const path = ctxPath(el);
+      if (SAFE_SKIP.test(path)) { continue; }
+      const nm = dmName(el);
+      // صف UserName صريح (يعمل حتى بدون @)
+      if (/username/i.test(nm)) {
+        if (strict && !WAN_CTX.test(path)) continue;
+        const cur = el.getAttribute('val') || el.getAttribute('Val') || el.textContent || '';
+        const found = dmUser(cur);
+        if (found !== null) {
+          const nu = newUser || (bare ? found : (found.includes('@') ? found : found + '@' + domain));
+          const curT = String(cur).trim();
+          if (nu !== curT) {
+            if (el.hasAttribute && el.hasAttribute('val')) el.setAttribute('val', nu);
+            else if (el.hasAttribute && el.hasAttribute('Val')) el.setAttribute('Val', nu);
+            else el.textContent = nu;
+            changes.push([curT, nu, el.tagName + '[' + nm + '] ← ' + path.split(' > ').slice(-2).join(' > ')]);
+            stats.wan++;
+            if (newPass) ispPatchPassword(el.parentElement || el, newPass, changes, stats);
+            continue;
+          }
+        }
+      }
+      // صف Password صريح داخل WAN (قيمة val)
+      if (newPass && /passw/i.test(nm)) {
+        if (WAN_CTX.test(path)) {
+          const attr = (el.hasAttribute && el.hasAttribute('val')) ? 'val' : ((el.hasAttribute && el.hasAttribute('Val')) ? 'Val' : null);
+          const curV = attr ? el.getAttribute(attr) : (el.children.length === 0 ? el.textContent : '');
+          if (curV && String(curV).trim() && String(curV).trim() !== newPass) {
+            if (attr) el.setAttribute(attr, newPass);
+            else el.textContent = newPass;
+            changes.push(['كلمة سر الاشتراك (' + nm + ')', 'محدّثة — مخفية للخصوصية', 'WANPPP']);
+            stats.wan++;
+          }
+          continue;
+        }
+      }
     const consider = (el, get, set, kind) => {
       const val = get().trim();
       if (!FULL_USER_RE.test(val) || seen.has(el.tagName + '|' + val)) return;
