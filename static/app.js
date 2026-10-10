@@ -14,28 +14,54 @@
     setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, ms);
   }
 
-  /* ---------- Theme (dark / light) ---------- */
+  /* ---------- Confetti ---------- */
+  function confetti() {
+    try {
+      const colors = ['#54d6e7', '#65dfa5', '#ffb224', '#ff5b5b', '#a06ee0'];
+      for (let i = 0; i < 60; i++) {
+        const s = document.createElement('span');
+        s.className = 'confetti-piece';
+        const sz = 5 + Math.random() * 7;
+        s.style.cssText = `left:${Math.random() * 100}vw;width:${sz}px;height:${sz * (Math.random() > .5 ? 1 : .4)}px;background:${colors[i % colors.length]};animation-duration:${1.6 + Math.random() * 1.4}s;`;
+        document.body.appendChild(s);
+        setTimeout(() => s.remove(), 3400);
+      }
+    } catch (_) {}
+  }
+  function markDownloadsDone() {
+    ['#isp-download', '#finish-dl-bin'].forEach((sel) => {
+      const b = $(sel);
+      if (!b || b.classList.contains('done')) return;
+      if (!b.dataset.label) b.dataset.label = b.innerHTML;
+      b.classList.add('done');
+      b.innerHTML = '✔ تم التحميل';
+      setTimeout(() => { b.classList.remove('done'); if (b.dataset.label) b.innerHTML = b.dataset.label; }, 4000);
+    });
+  }
+
+  /* ---------- Theme (dark / light / sky) ---------- */
   const root = document.documentElement;
   const themeBtn = $('#theme-toggle');
   const themeIcon = themeBtn ? themeBtn.querySelector('.theme-icon') : null;
   const themeLabel = $('#theme-label');
+  const THEMES = { dark: ['🌙', 'ليلي', 'default'], light: ['☀️', 'نهاري', 'eclipse'], sky: ['🌊', 'سماوي', 'eclipse'] };
   function applyTheme(mode) {
-    const light = mode === 'light';
-    root.setAttribute('data-theme', light ? 'light' : 'dark');
-    if (editor) editor.setOption('theme', light ? 'eclipse' : 'default');
-    if (themeIcon) themeIcon.textContent = light ? '☀️' : '🌙';
-    if (themeLabel) themeLabel.textContent = light ? 'نهاري' : 'ليلي';
-    try { localStorage.setItem('zte-theme', light ? 'light' : 'dark'); } catch (_) {}
+    if (!THEMES[mode]) mode = 'dark';
+    root.setAttribute('data-theme', mode);
+    if (editor) editor.setOption('theme', THEMES[mode][2]);
+    if (themeIcon) themeIcon.textContent = THEMES[mode][0];
+    if (themeLabel) themeLabel.textContent = THEMES[mode][1];
+    try { localStorage.setItem('zte-theme', mode); } catch (_) {}
   }
   let savedTheme = 'dark';
   try { savedTheme = localStorage.getItem('zte-theme') || 'dark'; } catch (_) {}
-  if (savedTheme !== 'dark' && savedTheme !== 'light') savedTheme = 'dark';
+  if (!THEMES[savedTheme]) savedTheme = 'dark';
 
   const editor = CodeMirror.fromTextArea($('#xml-editor'), {
     mode: 'application/xml',
     lineNumbers: true,
     lineWrapping: false,
-    theme: savedTheme === 'light' ? 'eclipse' : 'default',
+    theme: THEMES[savedTheme] ? THEMES[savedTheme][2] : 'default',
     indentUnit: 2,
     tabSize: 2,
     styleActiveLine: true,
@@ -70,7 +96,9 @@
 
   applyTheme(savedTheme);
   if (themeBtn) themeBtn.addEventListener('click', () => {
-    applyTheme(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+    const cur = root.getAttribute('data-theme') || 'dark';
+    const order = ['dark', 'light', 'sky'];
+    applyTheme(order[(order.indexOf(cur) + 1) % order.length]);
   });
 
   /* ---------- Steps ---------- */
@@ -125,6 +153,9 @@
     n = Math.min(6, Math.max(1, n));
     if (fromUser && !canEnter(n)) return false;
     wizardStep = n;
+    const fill = $('#wizard-progress-fill'), ptxt = $('#wizard-progress-text');
+    if (fill) fill.style.width = Math.round((n / 6) * 100) + '%';
+    if (ptxt) ptxt.textContent = n + ' / 6';
     if (wizardEl) wizardEl.querySelectorAll('.wpanel').forEach((p) => {
       p.classList.toggle('active', Number(p.getAttribute('data-panel')) === n);
     });
@@ -505,6 +536,7 @@
         x.setAttribute('aria-checked', on ? 'true' : 'false');
       });
       ispFieldHint();
+      try { root.setAttribute('data-isp', selectedIsp); } catch (_) {}
     });
   });
   const passToggle = $('#pass-toggle');
@@ -688,6 +720,7 @@
       ul.appendChild(safe);
     }
     toast(`تم تعديل الملف من ${srcPreset.name} إلى ${preset.name} بنجاح`, 'success');
+    confetti();
   });
   const ispSkip = $('#isp-skip');
   if (ispSkip) ispSkip.addEventListener('click', () => goStep(5, true));
@@ -843,6 +876,7 @@
       await download('/api/encode', 'config.bin', metadataForm());
       baseline = editor.getValue(); clearEditMarks(); syncEditor(); setStep(6);
       toast('تمت إعادة التشفير وتنزيل config.bin', 'success');
+      confetti(); markDownloadsDone();
       fillFinish(); goStep(6, false);
     } catch (e) { showAlert(e.message); toast(e.message, 'error'); } finally { setBusy(button, false); }
   }
