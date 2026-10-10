@@ -1,5 +1,7 @@
 """Compression and decompression helper functions"""
 
+from __future__ import annotations
+
 import struct
 import zlib
 from io import BytesIO

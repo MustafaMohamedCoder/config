@@ -338,7 +338,18 @@
       ['المفتاح', md.used_key_source || '—'],
       ['الإصدار', String(md.version ?? '—')],
     ];
-    grid.innerHTML = items.map(([k, v]) => `<div class="meta-item"><small>${k}</small><b dir="auto">${String(v).slice(0, 48)}</b></div>`).join('');
+    grid.innerHTML = '';
+    items.forEach(([k, v]) => {
+      const d = document.createElement('div');
+      d.className = 'meta-item';
+      const s = document.createElement('small');
+      s.textContent = k;
+      const b = document.createElement('b');
+      b.setAttribute('dir', 'auto');
+      b.textContent = String(v).slice(0, 48);
+      d.append(s, b);
+      grid.appendChild(d);
+    });
     grid.classList.remove('d-none');
   }
 
@@ -834,12 +845,6 @@
     } catch (_) { box.textContent = ''; box.className = 'file-check'; }
   }
 
-  const waCopy = $('#wa-copy');
-  if (waCopy) waCopy.addEventListener('click', async () => {
-    const h = ($('#wa-handle').textContent || '').trim();
-    try { await navigator.clipboard.writeText(h); toast('تم نسخ معرف واتساب', 'success'); }
-    catch (_) { toast(h, 'info', 4500); }
-  });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && confirmModal && !confirmModal.classList.contains('d-none')) closeConfirm(); });
 
   /* ---------- File inputs ---------- */

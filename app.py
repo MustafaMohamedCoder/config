@@ -106,7 +106,10 @@ def _key_candidates(mode: str, form, signature: str, payload_type: int):
             raise ValueError("أدخل المفتاح المخصص.")
         return [(supplied_key, supplied_iv or None, "مفتاح مخصص")]
     if mode.startswith("key:"):
-        return [(_text(mode[4:]), None, "مفتاح ثابت")]
+        fixed = _text(mode[4:])
+        if not fixed:
+            raise ValueError("المفتاح الثابت فارغ.")
+        return [(fixed, None, "مفتاح ثابت")]
     if mode.startswith("model:"):
         model = _text(mode[6:])
         if not model:
@@ -137,13 +140,6 @@ def _key_candidates(mode: str, form, signature: str, payload_type: int):
         generated = run_keygens(params)
         return generated or run_all_keygens(params)
     return []
-
-
-def _decode(stream: NamedBytesIO, form) -> tuple[bytes, dict[str, Any]]:
-    # stream is positioned after signature + outer payload header.
-    payload_type = struct.unpack(">I", stream.getbuffer()[4:8])[0] if False else None
-    # The caller has already read headers; derive the payload type from metadata separately.
-    raise AssertionError("internal: _decode needs metadata")
 
 
 def decode_bytes(raw: bytes, form) -> tuple[bytes, dict[str, Any]]:
@@ -198,7 +194,10 @@ def encode_bytes(xml_bytes: bytes, form) -> bytes:
         ET.fromstring(xml_bytes)
     except ET.ParseError as exc:
         raise ValueError(f"XML غير صالح: {exc}") from exc
-    payload_type = int(_text(form.get("payload_type"), "0"))
+    try:
+        payload_type = int(_text(form.get("payload_type"), "0"))
+    except (TypeError, ValueError):
+        raise ValueError("نوع الحمولة غير صالح.")
     if payload_type not in ALLOWED_PAYLOAD_TYPES:
         raise ValueError("نوع الحمولة غير مدعوم.")
     signature = _text(form.get("signature"))
@@ -217,7 +216,10 @@ def encode_bytes(xml_bytes: bytes, form) -> bytes:
             encryptor = CBCXcryptor(chunk_size=chunk_size, payload_type=payload_type)
             encryptor.set_key(key, iv)
             payload = encryptor.encrypt(compressed)
-    version_number = int(_text(form.get("version"), "2"))
+    try:
+        version_number = int(_text(form.get("version"), "2"))
+    except (TypeError, ValueError):
+        raise ValueError("رقم الإصدار غير صالح.")
     version = version_number if _as_bool(form.get("little_endian")) else version_number << 16
     result = zcu.zte.add_header(payload, signature.encode("utf-8"), version,
                                 include_header=_as_bool(form.get("include_header")),
