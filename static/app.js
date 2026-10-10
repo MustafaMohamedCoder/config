@@ -566,7 +566,7 @@
     while (n && n.nodeType === 1 && parts.length < 6) { parts.unshift(n.tagName); n = n.parentElement; }
     return parts.join(' > ');
   }
-  function ispPatchDom(doc, newUser, newPass, domain, changes, stats, strict) {
+  function ispPatchDom(doc, newUser, newPass, domain, changes, stats, strict, bare) {
     const els = doc.getElementsByTagName('*');
     const seen = new Set();
     const consider = (el, get, set, kind) => {
@@ -577,7 +577,7 @@
       if (strict && !WAN_CTX.test(path)) return;
       seen.add(el.tagName + '|' + val);
       const local = val.split('@')[0];
-      const nu = newUser || (local + '@' + domain);
+      const nu = newUser || (bare ? local : (local + '@' + domain));
       if (nu !== val) {
         changes.push([val, nu, (kind === 'attr' ? '@' : '') + el.tagName + ' ← ' + path.split(' > ').slice(-2).join(' > ')]);
         set(nu);
@@ -634,10 +634,10 @@
     let manualUser = null;
     if (rawUser) {
       if (preset.landlineOnly) {
-        // غير WE: رقم أرضي بكود المحافظة فقط (نتسامح مع لصق اسم كامل بأخذ ما قبل @)
+        // غير WE: رقم أرضي بكود المحافظة فقط بدون أي نطاق (نتسامح مع لصق اسم كامل بأخذ ما قبل @)
         const digits = normalizeLandline(rawUser.split('@')[0]);
         if (!/^\d{8,11}$/.test(digits)) { toast('أدخل رقم التليفون الأرضي بكود المحافظة (أرقام فقط، مثال: 0401234567)', 'error'); return; }
-        manualUser = digits + '@' + preset.domain;
+        manualUser = digits;
       } else if (rawUser.includes('@')) {
         if (!FULL_USER_RE.test(rawUser)) { toast('صيغة اسم المستخدم غير صحيحة (مثال: user@tedata.net.eg)', 'error'); return; }
         manualUser = rawUser;
@@ -654,8 +654,8 @@
     try {
       const doc = new DOMParser().parseFromString(xml, 'text/xml');
       if (doc.querySelector('parsererror')) throw new Error('parse');
-      ispPatchDom(doc, manualUser || null, manualPass || null, preset.domain, changes, stats, true);
-      if (!changes.length) { broadMode = true; ispPatchDom(doc, manualUser || null, manualPass || null, preset.domain, changes, stats, false); }
+      ispPatchDom(doc, manualUser || null, manualPass || null, preset.domain, changes, stats, true, preset.landlineOnly);
+      if (!changes.length) { broadMode = true; ispPatchDom(doc, manualUser || null, manualPass || null, preset.domain, changes, stats, false, preset.landlineOnly); }
       out = new XMLSerializer().serializeToString(doc);
       new DOMParser().parseFromString(out, 'text/xml').querySelector('parsererror') && (() => { throw new Error('parse'); })();
     } catch (_) {
@@ -669,7 +669,7 @@
         const tag = (lookback.match(/<([A-Za-z0-9_.:-]+)[^<>]*$/) || [])[1] || '';
         if (SAFE_SKIP.test(lookback.slice(-120) + ' ' + tag)) { stats.skipped++; continue; }
         const user = m[2];
-        const nu = manualUser || (user.split('@')[0] + '@' + preset.domain);
+        const nu = manualUser || (preset.landlineOnly ? user.split('@')[0] : (user.split('@')[0] + '@' + preset.domain));
         if (nu !== user) { changes.push([user, nu, tag]); stats.wan++; parts.push([m.index, m[0], m[1] + nu]); }
       }
       out = xml;
