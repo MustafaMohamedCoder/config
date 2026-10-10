@@ -201,7 +201,7 @@
     if (fm) {
       fm.innerHTML = '';
       if (metadata && metadata.signature) {
-        [['التوقيع', metadata.signature], ['الحمولة', 'Type ' + (metadata.payload_type ?? '—')], ['المفتاح', metadata.used_key_source || '—']].forEach(([k, v]) => {
+        [['التوقيع', metadata.signature], ['الحمولة', 'Type ' + ((metadata.payload_type === undefined || metadata.payload_type === null) ? '—' : metadata.payload_type)], ['المفتاح', metadata.used_key_source || '—']].forEach(([k, v]) => {
           const d = document.createElement('div');
           d.className = 'meta-item';
           d.innerHTML = `<small>${k}</small><b dir="auto"></b>`;
@@ -341,9 +341,9 @@
     if (!md || !md.signature) { grid.classList.add('d-none'); grid.innerHTML = ''; return; }
     const items = [
       ['التوقيع', md.signature || '—'],
-      ['الحمولة', 'Type ' + (md.payload_type ?? '—')],
+      ['الحمولة', 'Type ' + ((md.payload_type === undefined || md.payload_type === null) ? '—' : md.payload_type)],
       ['المفتاح', md.used_key_source || '—'],
-      ['الإصدار', String(md.version ?? '—')],
+      ['الإصدار', String((md.version === undefined || md.version === null) ? '—' : md.version)],
     ];
     grid.innerHTML = '';
     items.forEach(([k, v]) => {
@@ -642,6 +642,7 @@
           continue;
         }
       }
+    }
     const consider = (el, get, set, kind) => {
       const val = get().trim();
       if (!FULL_USER_RE.test(val) || seen.has(el.tagName + '|' + val)) return;
