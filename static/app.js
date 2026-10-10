@@ -478,9 +478,7 @@
     if (!isXml && operation !== 'decode') { operation = 'decode'; applyOp(); }
     const target = (isXml ? $('#xml-file-input') : $('#file-input'));
     if (!target) return;
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    target.files = dt.files;
+    setInputFiles(target, e.dataTransfer.files);
     target.dispatchEvent(new Event('change'));
     toast('تم استلام الملف: ' + file.name, 'info');
     goStep(1, false);
@@ -794,6 +792,15 @@
     openConfirm(() => { setTimeout(() => { if (sp) sp.classList.add('d-none'); }, 4000); doEncodeBin(); });
   });
 
+  function setInputFiles(input, files) {
+    try {
+      const dt = new DataTransfer();
+      for (let i = 0; i < files.length; i++) { try { dt.items.add(files[i]); } catch (_) {} }
+      input.files = dt.files;
+    } catch (_) {
+      try { input.files = files; } catch (_) {}
+    }
+  }
   /* فحص تلقائي للملف المختار بلغة بسيطة قبل أي زر */
   function validatePickedFile(input, kind) {
     const box = $(kind === 'xml' ? '#xml-file-check' : '#file-check');
@@ -852,7 +859,7 @@
       ['dragleave', 'drop'].forEach((n) => zone.addEventListener(n, (e) => { e.preventDefault(); zone.classList.remove('dragging'); }));
       zone.addEventListener('drop', (e) => {
         const file = e.dataTransfer.files && e.dataTransfer.files[0];
-        if (file) { const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; input.dispatchEvent(new Event('change')); toast('تم استلام الملف: ' + file.name, 'info'); }
+        if (file) { setInputFiles(input, e.dataTransfer.files); input.dispatchEvent(new Event('change')); toast('تم استلام الملف: ' + file.name, 'info'); }
       });
     }
   }
