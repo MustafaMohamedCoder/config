@@ -4,8 +4,7 @@
   const toastWrap = $('#toast-wrap');
 
   /* ---------- Toast ---------- */
-  function toast(message, kind = 'info', ms = 3200) {
-    if (!toastWrap) { showAlert(message, kind === 'error' ? 'danger' : 'success'); return; }
+  function toast(message, kind = 'info', ms = 3200) {    if (!toastWrap) { showAlert(message, kind === 'error' ? 'danger' : 'success'); return; }
     const el = document.createElement('div');
     el.className = `toast-msg ${kind}`;
     el.textContent = message;
@@ -13,6 +12,14 @@
     requestAnimationFrame(() => el.classList.add('show'));
     setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, ms);
   }
+  // إظهار أي عطل برمجي للمستخدم مباشرة لتسهيل التشخيص
+  window.addEventListener('error', (e) => {
+    try {
+      const msg = (e && e.message) || 'عطل غير معروف';
+      if (/Script error/i.test(String(msg))) return;
+      toast('عطل: ' + msg, 'error', 6000);
+    } catch (_) {}
+  });
 
   /* ---------- Confetti ---------- */
   function confetti() {
