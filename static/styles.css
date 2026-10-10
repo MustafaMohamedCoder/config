@@ -73,6 +73,13 @@ code { color:var(--cyan); }
 .confirm-body { padding:1rem; display:flex; flex-direction:column; gap:.4rem; }
 .confirm-body p { margin:0; font-size:.9rem; line-height:1.9; }
 .confirm-body .finish-actions { margin-top:.6rem; }
+/* collapsible advanced fields */
+.adv-fields { border:1px dashed var(--line); border-radius:10px; padding:.5rem .8rem; margin-top:.85rem; background:var(--panel2); }
+.adv-fields summary { cursor:pointer; font-weight:800; font-size:.82rem; list-style:none; display:flex; align-items:center; gap:.4rem; }
+.adv-fields summary::-webkit-details-marker { display:none; }
+.adv-fields summary small { color:var(--muted); font-weight:400; }
+.adv-fields .tri { display:inline-block; font-size:.7rem; color:var(--cyan); transition:transform .2s; }
+.adv-fields[open] .tri { transform:rotate(90deg); }
 /* operation mini toggle */
 .op-mini { display:flex; gap:.5rem; margin-bottom:1rem; }
 .op-mini-btn { flex:1; border:2px solid var(--line); background:var(--panel); color:var(--text); border-radius:12px; padding:.6rem; font-weight:800; font-size:.85rem; cursor:pointer; transition:.2s; }
