@@ -78,7 +78,7 @@
           <div class="field"><label for="longpass">Long Password <small>(لـ TagParams)</small></label><input id="longpass" name="longpass" class="form-control" autocomplete="off"></div>
           <div id="custom-fields" class="d-none advanced-grid"><div class="field"><label for="custom-key">Key</label><input id="custom-key" name="custom_key" class="form-control" autocomplete="off" dir="ltr"></div><div class="field"><label for="custom-iv">IV</label><input id="custom-iv" name="custom_iv" class="form-control" autocomplete="off" dir="ltr"></div></div>
           </details>
-          <button class="btn btn-primary w-100 mt-3 btn-lg-action" type="submit"><span class="btn-text">فك التشفير وعرض XML</span><span class="spinner-border spinner-border-sm d-none"></span></button>
+          <button id="decode-submit" class="btn btn-primary w-100 mt-3 btn-lg-action" type="button"><span class="btn-text">فك التشفير وعرض XML</span><span class="spinner-border spinner-border-sm d-none"></span></button>
           <div id="decode-progress" class="upload-progress d-none" aria-hidden="true"><i></i></div>
           <p class="privacy-note">🔒 لا تُحفظ الملفات على الخادم؛ تتم المعالجة في الذاكرة فقط.</p>
         </form>
@@ -99,7 +99,7 @@
           <div id="upload-custom-fields" class="d-none advanced-grid"><div class="field"><label for="upload-custom-key">Key</label><input id="upload-custom-key" name="custom_key" class="form-control" dir="ltr"></div><div class="field"><label for="upload-custom-iv">IV</label><input id="upload-custom-iv" name="custom_iv" class="form-control" dir="ltr"></div></div>
           </details>
           <div class="form-check mt-3"><input id="upload-include-header" name="include_header" value="true" class="form-check-input" type="checkbox"><label class="form-check-label" for="upload-include-header">إضافة رأس ZTE للملف</label></div>
-          <button class="btn btn-success w-100 mt-3" type="submit"><span>تشفير XML وتنزيل config.bin</span><span class="spinner-border spinner-border-sm d-none"></span></button>
+          <button id="encode-upload-submit" class="btn btn-success w-100 mt-3" type="button"><span>تشفير XML وتنزيل config.bin</span><span class="spinner-border spinner-border-sm d-none"></span></button>
           <div id="encode-progress" class="upload-progress green d-none" aria-hidden="true"><i></i></div>
         </form>
         <div class="help-card">
@@ -243,11 +243,6 @@
       </section>
     </div>
 
-    <section class="panel contact-panel mt-4" aria-label="تواصل واتساب">
-      <div class="panel-heading"><span class="icon">💬</span><div><h2>تواصل واتساب</h2><small>للاقتراحات وحل المشكلات</small></div></div>
-      <div class="contact-row"><code id="wa-handle" dir="ltr">@1mustafaMohammed1</code><button id="wa-copy" class="btn btn-success" type="button">📋 نسخ المعرف</button></div>
-      <p class="privacy-note">ابعت اقتراحك أو وصف المشكلة على واتساب بالمعرف أعلاه — ولو عندك رقم التواصل المباشر ابعته وسأحوله لزر محادثة فورية.</p>
-    </section>
     <footer class="mt-4"><span class="made-by">صُنع بـ <span class="red-heart">❤</span> مصطفي عبدالفتاح</span></footer>
   </main>
   <div id="page-drop" class="page-drop d-none" aria-hidden="true"><div><b>⬇ أفلت الملف هنا</b><p><code>.bin</code> للفك • <code>.xml</code> للتشفير</p></div></div>

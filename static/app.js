@@ -861,13 +861,26 @@
   $('#key-mode').addEventListener('change', (e) => $('#custom-fields').classList.toggle('d-none', e.target.value !== 'custom'));
   $('#upload-key-mode').addEventListener('change', (e) => $('#upload-custom-fields').classList.toggle('d-none', e.target.value !== 'custom'));
 
-  $('#decode-form').addEventListener('submit', async (event) => {
-    event.preventDefault();
+  // منع أي إرسال تقليدي للنموذج نهائياً (لا تحديث للصفحة أبداً)
+  ['#decode-form', '#xml-upload-form'].forEach((sel) => {
+    const f = $(sel);
+    if (f) {
+      f.addEventListener('submit', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const btn = f.querySelector('#decode-submit, #encode-upload-submit');
+        if (btn && !btn.disabled) btn.click();
+        return false;
+      });
+    }
+  });
+
+  async function doDecode() {
     if (!$('#file-input').files.length) { toast('اختر ملف config.bin أولاً', 'error'); return; }
-    const button = event.target.querySelector('button[type=submit]');
+    const button = $('#decode-submit');
     setBusy(button, true); progressShow('decode-progress', true); editorBusy(true); alertBox.classList.add('d-none'); setStep(2);
     try {
-      const response = await fetch('/api/decode', { method: 'POST', body: new FormData(event.target) });
+      const response = await fetch('/api/decode', { method: 'POST', body: new FormData($('#decode-form')) });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error || 'تعذر فك الملف');
       metadata = data.metadata;
@@ -886,7 +899,9 @@
       toast('تم فك الملف بنجاح', 'success');
       goStep(2, false);
     } catch (error) { editorBusy(false); showAlert(error.message); toast(error.message, 'error', 4500); } finally { setBusy(button, false); progressShow('decode-progress', false); }
-  });
+  }
+  const decodeBtn = $('#decode-submit');
+  if (decodeBtn) decodeBtn.addEventListener('click', doDecode);
 
   function metadataForm() {
     const form = new FormData($('#decode-form'));
@@ -942,14 +957,16 @@
     } catch (e) { showAlert(e.message); toast(e.message, 'error'); } finally { setBusy(button, false); }
   }
   $('#encode-form-submit').addEventListener('click', () => openConfirm(doEncodeBin));
-  $('#xml-upload-form').addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const button = event.target.querySelector('button[type=submit]');
+  async function doEncodeUpload() {
+    const button = $('#encode-upload-submit');
+    if (!$('#xml-file-input').files.length) { toast('اختر ملف config.xml أولاً', 'error'); return; }
     setBusy(button, true); progressShow('encode-progress', true); alertBox.classList.add('d-none');
     try {
-      await download('/api/encode-upload', 'config.bin', new FormData(event.target));
+      await download('/api/encode-upload', 'config.bin', new FormData($('#xml-upload-form')));
       toast('تم تشفير XML وتنزيل config.bin', 'success');
       fillFinish(); goStep(6, false);
     } catch (error) { showAlert(error.message); toast(error.message, 'error'); } finally { setBusy(button, false); progressShow('encode-progress', false); }
-  });
+  }
+  const encodeUploadBtn = $('#encode-upload-submit');
+  if (encodeUploadBtn) encodeUploadBtn.addEventListener('click', doEncodeUpload);
 })();
