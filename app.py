@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import struct
 import zlib
 import xml.etree.ElementTree as ET
@@ -252,6 +254,41 @@ def api_decode():
     except Exception:
         app.logger.exception("Unexpected decode error")
         return _error("حدث خطأ غير متوقع أثناء المعالجة. تحقق من الملف والقيم المدخلة.", 500)
+
+
+@app.post("/api/v1/decode")
+def api_v1_decode():
+    """Machine-friendly automatic decoder for multipart uploads or JSON Base64."""
+    upload = request.files.get("file")
+    form = request.form
+    filename = upload.filename if upload is not None else "config.bin"
+    try:
+        if upload is not None and upload.filename:
+            raw = upload.read()
+        else:
+            body = request.get_json(silent=True) or {}
+            encoded = body.get("file_base64")
+            if not encoded:
+                return _error("أرسل الملف في الحقل file أو file_base64.")
+            try:
+                raw = base64.b64decode(encoded, validate=True)
+            except (binascii.Error, ValueError) as exc:
+                raise ValueError("قيمة file_base64 غير صالحة.") from exc
+            filename = _text(body.get("filename"), "config.bin")
+            form = body
+        xml_bytes, metadata = decode_bytes(raw, form)
+        return jsonify({
+            "ok": True,
+            "filename": filename,
+            "xml": xml_bytes.decode("utf-8", errors="replace"),
+            "xml_base64": base64.b64encode(xml_bytes).decode("ascii"),
+            "metadata": metadata,
+        })
+    except ValueError as exc:
+        return _error(str(exc))
+    except Exception:
+        app.logger.exception("Unexpected v1 decode error")
+        return _error("حدث خطأ غير متوقع أثناء فك الملف تلقائياً.", 500)
 
 
 @app.post("/api/encode")
