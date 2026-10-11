@@ -29,6 +29,15 @@ h1 { font-size:clamp(1.8rem,4vw,3rem); line-height:1.15; letter-spacing:-.02em; 
 h1 span { color:var(--cyan); } .hero p { color:var(--muted); font-size:1.02rem; max-width:640px; }
 .hero-tips { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.8rem; }
 .hero-tips span { font-size:.75rem; border:1px solid var(--line); background:var(--panel); border-radius:999px; padding:.3rem .75rem; color:var(--text); }
+.router-picker { max-width:860px; margin-inline:auto; }
+.router-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.8rem; }
+.router-option { display:flex; align-items:center; gap:.7rem; margin:0; padding:.85rem; border:1px solid var(--line); border-radius:12px; background:var(--panel2); cursor:pointer; transition:.2s; }
+.router-option:hover,.router-option.active { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 10%, var(--panel2)); }
+.router-option input { position:absolute; opacity:0; pointer-events:none; }
+.router-option b,.router-option small { display:block; }
+.router-option small { color:var(--muted); font-size:.74rem; font-weight:400; }
+.router-mark { display:grid; place-items:center; width:38px; height:38px; border-radius:11px; background:var(--cyan); color:#06202a; font-weight:800; font-size:1.15rem; }
+.huawei-mark { background:#ef3d4e; color:#fff; }
 code { color:var(--cyan); }
 /* usage box */
 .usage-box { border:1px solid var(--cyan); background:var(--panel); border-radius:14px; padding:.8rem 1rem; margin-bottom:1rem; font-size:.85rem; }
@@ -52,7 +61,7 @@ code { color:var(--cyan); }
 .finish-panel .meta-grid { text-align:start; margin:1rem 0; }
 .finish-actions { display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap; }
 .restart-link { margin-top:1rem; color:var(--muted); }
-@media (max-width: 575px) { .isp-cards { grid-template-columns:1fr 1fr; } .isp-card { padding:1.2rem .5rem; } .isp-card b { font-size:1.05rem; } .isp-badge { width:54px; height:54px; font-size:1.05rem; } .finish-actions { flex-direction:column; } .finish-actions .btn { width:100%; } .wizard-nav { position:sticky; bottom:0; z-index:30; background:var(--bg); padding:.6rem .2rem; border-top:1px solid var(--line); } }
+@media (max-width: 575px) { .router-options { grid-template-columns:1fr; } .router-option { padding:.7rem; } .isp-cards { grid-template-columns:1fr 1fr; } .isp-card { padding:1.2rem .5rem; } .isp-card b { font-size:1.05rem; } .isp-badge { width:54px; height:54px; font-size:1.05rem; } .finish-actions { flex-direction:column; } .finish-actions .btn { width:100%; } .wizard-nav { position:sticky; bottom:0; z-index:30; background:var(--bg); padding:.6rem .2rem; border-top:1px solid var(--line); } }
 /* editor loading overlay */
 .editor-loading { position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; gap:.6rem; align-items:center; justify-content:center; background:var(--panel2); background:color-mix(in srgb, var(--panel2) 92%, transparent); border:1px solid var(--line); border-radius:10px; color:var(--text); text-align:center; padding:1rem; }
 .editor-loading p { margin:0; font-size:.85rem; font-weight:700; }

@@ -82,6 +82,15 @@
     },
   });
   let metadata = {};
+  function updateRouterType() {
+    const selected = document.querySelector('input[name="router_type"]:checked')?.value || 'zte';
+    document.querySelectorAll('.router-option').forEach((option) => option.classList.toggle('active', option.querySelector('input').value === selected));
+    const notice = $('#huawei-notice');
+    if (notice) notice.classList.toggle('d-none', selected !== 'huawei');
+    document.documentElement.dataset.routerType = selected;
+  }
+  document.querySelectorAll('input[name="router_type"]').forEach((input) => input.addEventListener('change', updateRouterType));
+  updateRouterType();
   let baseline = '';
   let silentSet = false; // true أثناء التعيين البرمجي لتفادي تعليم آلاف الأسطر
   const editedLines = new Set();
