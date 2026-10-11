@@ -50,13 +50,6 @@
     </details>
     <div id="toast-wrap" class="toast-wrap" aria-live="polite"></div>
     <div id="alert" class="alert d-none" role="alert"></div>
-    <section class="router-picker panel mb-4" aria-labelledby="router-type-title">
-      <div class="panel-heading"><span class="icon">↔</span><div><h2 id="router-type-title">نوع الراوتر</h2><small>اختر Huawei أو ZTE، ثم اتبع نفس خطوات الموقع</small></div></div>
-      <div class="router-options" role="radiogroup" aria-label="اختيار نوع الراوتر">
-        <label class="router-option active" for="router-zte"><input id="router-zte" name="router_type" type="radio" value="zte" checked><span class="router-mark">Z</span><span><b>ZTE</b></span></label>
-        <label class="router-option" for="router-huawei"><input id="router-huawei" name="router_type" type="radio" value="huawei"><span class="router-mark huawei-mark">H</span><span><b>Huawei</b></span></label>
-      </div>
-    </section>
     <div id="wizard-progress" class="wizard-progress" aria-hidden="true"><i id="wizard-progress-fill"></i><span id="wizard-progress-text">1 / 6</span></div>
     <section class="step-strip mb-4" aria-label="خطوات الاستخدام" id="steps">
       <div data-step="1" data-goto="1" class="active" tabindex="0" role="button" title="الخطوة 1: الملف"><b>01</b><span>الملف</span></div><i></i><div data-step="2" data-goto="2" tabindex="0" role="button" title="الخطوة 2: سوفت الراوتر"><b>02</b><span>سوفت الراوتر</span></div><i></i><div data-step="3" data-goto="3" tabindex="0" role="button" title="الخطوة 3: الشركة المطلوبة"><b>03</b><span>الشركة</span></div><i></i><div data-step="4" data-goto="4" tabindex="0" role="button" title="الخطوة 4: بيانات الاشتراك"><b>04</b><span>البيانات</span></div><i></i><div data-step="5" data-goto="5" tabindex="0" role="button" title="الخطوة 5: خيارات متقدمة"><b>05</b><span>خيارات متقدمة</span></div><i></i><div data-step="6" data-goto="6" tabindex="0" role="button" title="الخطوة 6: الإنهاء"><b>06</b><span>الإنهاء</span></div>
@@ -72,8 +65,6 @@
         </div>
         <form id="decode-form" class="panel" data-op-form="decode">
           <div class="panel-heading"><span class="icon">↧</span><div><h2 id="decode-heading">ارفع ملف الإعدادات</h2><small id="decode-subheading">ملف config.bin من الراوتر</small></div><span class="step-num">1</span></div>
-          <input id="decode-router-type" name="router_type" type="hidden" value="zte">
-          <div id="huawei-model-field" class="field d-none"><label for="huawei-model">موديل Huawei</label><select id="huawei-model" name="huawei_model" class="form-select"><option value="dg8045">DG8045</option><option value="hg633">HG633</option></select></div>
           <label class="dropzone" for="file-input" id="dropzone" tabindex="0" aria-label="منطقة رفع ملف config.bin">
             <input id="file-input" name="file" type="file" accept=".bin,application/octet-stream" required>
             <strong>اسحب config.bin إلى هنا</strong><span>أو اختره من جهازك • حتى 16MB</span><em id="file-name">لم يتم اختيار ملف</em>

@@ -24,7 +24,6 @@ from zcu.known_keys import (
     run_keygens,
 )
 from zcu.xcryptors import CBCXcryptor, Xcryptor
-from huawei_config import decode_huawei_bytes
 
 app = Flask(__name__)
 app.config.update(MAX_CONTENT_LENGTH=16 * 1024 * 1024, JSON_SORT_KEYS=False)
@@ -258,7 +257,6 @@ def api_decode():
 
 
 @app.post("/api/v1/decode")
-@app.post("/api/v1/huawei/decode")
 def api_v1_decode():
     """Machine-friendly automatic decoder for multipart uploads or JSON Base64."""
     upload = request.files.get("file")
@@ -278,14 +276,7 @@ def api_v1_decode():
                 raise ValueError("قيمة file_base64 غير صالحة.") from exc
             filename = _text(body.get("filename"), "config.bin")
             form = body
-        default_router = "huawei" if request.path.startswith("/api/v1/huawei/") else "zte"
-        router_type = _text(form.get("router_type"), default_router).lower()
-        if router_type == "huawei":
-            xml_bytes, metadata = decode_huawei_bytes(raw, form.get("huawei_model"))
-        elif router_type == "zte":
-            xml_bytes, metadata = decode_bytes(raw, form)
-        else:
-            raise ValueError("نوع الراوتر غير مدعوم. استخدم zte أو huawei.")
+        xml_bytes, metadata = decode_bytes(raw, form)
         return jsonify({
             "ok": True,
             "filename": filename,

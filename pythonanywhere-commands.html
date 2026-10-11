@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>أوامر PythonAnywhere - ZTE Config</title>
+<style>
+body{font-family:Arial,sans-serif;background:#07111f;color:#edf6ff;max-width:900px;margin:auto;padding:20px;line-height:1.7}
+h1{color:#54d6e7}h2{font-size:18px;color:#9debf3;margin-top:28px}.card{background:#102238;border:1px solid #2c4b68;border-radius:12px;padding:14px;margin:12px 0}.row{display:flex;gap:10px;align-items:center;direction:ltr}.cmd{background:#06101b;color:#d8f5ff;border-radius:8px;padding:12px;flex:1;overflow:auto;white-space:pre-wrap;word-break:break-word;font-family:monospace;text-align:left}.copy{background:#54d6e7;color:#06111c;border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:bold;white-space:nowrap}.copy.done{background:#65dfa5}.note{color:#a8bdd0}.danger{color:#ffd18a}</style>
+</head>
+<body>
+<h1>أوامر نشر ZTE Config على PythonAnywhere</h1>
+<p class="note">اضغط زر «نسخ» بجانب أي أمر، ثم الصقه في Bash Console. نفّذ الأوامر بالترتيب.</p>
+<div id="commands"></div>
+<h2>كود ملف WSGI</h2>
+<div class="card"><div class="row"><pre class="cmd" id="wsgi">import sys
+
+project_path = "/home/mumost/zte-config"
+
+if project_path not in sys.path:
+    sys.path.insert(0, project_path)
+
+from app import app as application</pre><button class="copy" onclick="copyText('wsgi',this)">نسخ</button></div></div>
+<p class="danger">بعد حفظ WSGI ضع هذا المسار في خانة Virtualenv:</p>
+<div class="card"><div class="row"><pre class="cmd" id="venv">/home/mumost/.virtualenvs/zte-env</pre><button class="copy" onclick="copyText('venv',this)">نسخ</button></div></div>
+<script>
+const items=[
+ ['1 - الانتقال إلى مجلد الحساب','cd /home/mumost'],
+ ['2 - تحميل المشروع','git clone https://github.com/MustafaMohamedCoder/config.git zte-config'],
+ ['3 - الدخول إلى المشروع','cd /home/mumost/zte-config'],
+ ['4 - عرض الملفات','ls'],
+ ['5 - إنشاء مجلد البيئة','mkdir -p /home/mumost/.virtualenvs'],
+ ['6 - إنشاء البيئة الافتراضية','python3 -m venv /home/mumost/.virtualenvs/zte-env'],
+ ['7 - تفعيل البيئة','source /home/mumost/.virtualenvs/zte-env/bin/activate'],
+ ['8 - الدخول إلى المشروع','cd /home/mumost/zte-config'],
+ ['9 - تثبيت المكتبات','pip install -r requirements.txt'],
+ ['10 - اختبار التشفير','python -c "from Crypto.Cipher import AES; print(\'AES OK\')"'],
+ ['11 - اختبار Flask','python -c "from app import app; print(\'Flask app OK\')"'],
+ ['12 - معرفة اسم المستخدم','whoami'],
+ ['13 - معرفة المسار الحالي','pwd']
+];
+const root=document.getElementById('commands');
+items.forEach(([title,text],i)=>{const card=document.createElement('div');card.className='card';const row=document.createElement('div');row.className='row';const pre=document.createElement('pre');pre.className='cmd';pre.id='cmd'+i;pre.textContent=text;const button=document.createElement('button');button.className='copy';button.textContent='نسخ';button.onclick=()=>copyText(pre.id,button);row.append(pre,button);const h=document.createElement('h2');h.textContent=title;card.append(h,row);root.append(card)});
+async function copyText(id,button){const text=document.getElementById(id).textContent;try{await navigator.clipboard.writeText(text)}catch(e){const area=document.createElement('textarea');area.value=text;document.body.append(area);area.select();document.execCommand('copy');area.remove()}button.textContent='تم النسخ';button.classList.add('done');setTimeout(()=>{button.textContent='نسخ';button.classList.remove('done')},1500)}
+</script>
+</body>
+</html>

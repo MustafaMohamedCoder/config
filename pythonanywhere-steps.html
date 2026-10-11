@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>خطوات تشغيل ZTE Config على PythonAnywhere</title>
+<style>
+:root{--bg:#07111f;--card:#102238;--line:#2b4b68;--text:#edf6ff;--muted:#a7bdd0;--cyan:#54d6e7;--green:#65dfa5;--orange:#ffd18a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Tahoma,sans-serif;line-height:1.7;padding:18px}main{max-width:900px;margin:auto}h1{color:var(--cyan);line-height:1.25}h2{font-size:18px;color:#9debf3;margin:8px 0}.intro,.warning{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}.warning{border-color:#8b6937;color:var(--orange)}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}.row{display:flex;gap:10px;align-items:stretch;direction:ltr}.cmd{margin:0;flex:1;background:#06101b;color:#d8f5ff;border-radius:8px;padding:12px;overflow:auto;white-space:pre-wrap;word-break:break-word;font:14px/1.55 monospace;text-align:left;min-height:45px}.copy{background:var(--cyan);color:#06111c;border:0;border-radius:8px;padding:9px 13px;cursor:pointer;font-weight:bold;white-space:nowrap}.copy.done{background:var(--green)}.result{color:var(--green);font-family:monospace;font-size:13px;margin:.4rem 0 0}.muted{color:var(--muted);font-size:14px}a{color:var(--cyan)}
+</style>
+</head>
+<body><main>
+<h1>تشغيل ZTE Config على PythonAnywhere</h1>
+<div class="intro">اضغط زر <b>نسخ</b> بجانب كل أمر، ثم الصقه في Bash Console واضغط Enter. نفّذ الأوامر بالترتيب وانتظر انتهاء كل أمر.</div>
+<div class="warning">ظهرت لديك رسالة أن مجلد البيئة غير موجود. لذلك سنستخدم <b>mkvirtualenv</b> بدلاً من أمر venv.</div>
+<div id="steps"></div>
+<h2>كود ملف WSGI</h2>
+<div class="card"><p class="muted">من تبويب Web افتح WSGI configuration file، احذف كل ما بداخله، ثم انسخ الكود التالي والصقه واحفظه.</p><div class="row"><pre class="cmd" id="wsgi">import sys
+
+project_path = "/home/mumost/zte-config"
+
+if project_path not in sys.path:
+    sys.path.insert(0, project_path)
+
+from app import app as application</pre><button class="copy" onclick="copyText('wsgi',this)">نسخ</button></div></div>
+<h2>مسار Virtualenv</h2>
+<div class="card"><p class="muted">ضع هذا المسار في خانة Virtualenv داخل تبويب Web.</p><div class="row"><pre class="cmd" id="venv">/home/mumost/.virtualenvs/zte-env</pre><button class="copy" onclick="copyText('venv',this)">نسخ</button></div></div>
+<h2>بعد الإعداد</h2>
+<div class="card"><p class="muted">اضغط Reload في تبويب Web ثم افتح:</p><div class="row"><pre class="cmd" id="url">https://mumost.pythonanywhere.com</pre><button class="copy" onclick="copyText('url',this)">نسخ</button></div></div>
+<script>
+const steps=[
+['1 - الدخول إلى مجلد الحساب','cd /home/mumost'],
+['2 - التأكد من وجود المشروع','cd /home/mumost/zte-config && ls'],
+['3 - إنشاء البيئة بالطريقة المناسبة لـ PythonAnywhere','mkvirtualenv --python=/usr/bin/python3.13 zte-env'],
+['4 - التأكد من أن البيئة مفعلة','which python'],
+['5 - تثبيت المكتبات داخل البيئة','cd /home/mumost/zte-config && pip install --upgrade pip && pip install -r requirements.txt'],
+['6 - اختبار مكتبة التشفير','python -c "from Crypto.Cipher import AES; print(\'AES OK\')"'],
+['7 - اختبار تطبيق Flask','cd /home/mumost/zte-config && python -c "from app import app; print(\'Flask app OK\')"'],
+['8 - معرفة إصدار Python عند الحاجة','python --version']
+];
+const root=document.getElementById('steps');
+steps.forEach(([title,text],i)=>{const card=document.createElement('div');card.className='card';const h=document.createElement('h2');h.textContent=title;const row=document.createElement('div');row.className='row';const pre=document.createElement('pre');pre.className='cmd';pre.id='step'+i;pre.textContent=text;const b=document.createElement('button');b.className='copy';b.textContent='نسخ';b.onclick=()=>copyText(pre.id,b);row.append(pre,b);card.append(h,row);if(i===3){const r=document.createElement('div');r.className='result';r.textContent='النتيجة المتوقعة: /home/mumost/.virtualenvs/zte-env/bin/python';card.append(r)}root.append(card)});
+async function copyText(id,button){const text=document.getElementById(id).textContent;try{await navigator.clipboard.writeText(text)}catch(e){const area=document.createElement('textarea');area.value=text;area.style.position='fixed';area.style.opacity='0';document.body.append(area);area.select();document.execCommand('copy');area.remove()}button.textContent='تم النسخ';button.classList.add('done');setTimeout(()=>{button.textContent='نسخ';button.classList.remove('done')},1600)}
+</script></main></body></html>

@@ -82,30 +82,7 @@
     },
   });
   let metadata = {};
-  function updateRouterType() {
-    const selected = document.querySelector('input[name="router_type"]:checked')?.value || 'zte';
-    document.querySelectorAll('.router-option').forEach((option) => option.classList.toggle('active', option.querySelector('input').value === selected));
-    const hiddenType = $('#decode-router-type');
-    if (hiddenType) hiddenType.value = selected;
-    const modelField = $('#huawei-model-field');
-    if (modelField) modelField.classList.toggle('d-none', selected !== 'huawei');
-    const heading = $('#decode-heading');
-    const subheading = $('#decode-subheading');
-    const hint = $('#decode-step-hint');
-    if (selected === 'huawei') {
-      if (heading) heading.textContent = 'ارفع ملف Huawei';
-      if (subheading) subheading.textContent = 'ملف config.bin من راوتر Huawei';
-      if (hint) hint.innerHTML = '💬 ارفع ملف <code>config.bin</code> من صفحة راوتر Huawei، واختر الموديل قبل الضغط على فك التشفير.';
-    } else {
-      if (heading) heading.textContent = 'ارفع ملف الإعدادات';
-      if (subheading) subheading.textContent = 'ملف config.bin من الراوتر';
-      if (hint) hint.innerHTML = '💬 ارفع ملف <code>config.bin</code> اللي حملته من صفحة الراوتر (<code>192.168.1.1</code>) — ولو معاك XML جاهز بدّل للتشفير من الزرين فوق.';
-    }
-    document.documentElement.dataset.routerType = selected;
-  }
-  function currentRouterType() { return document.documentElement.dataset.routerType || 'zte'; }
-  document.querySelectorAll('input[name="router_type"]').forEach((input) => input.addEventListener('change', updateRouterType));
-  updateRouterType();
+  document.documentElement.dataset.routerType = 'zte';
   let baseline = '';
   let silentSet = false; // true أثناء التعيين البرمجي لتفادي تعليم آلاف الأسطر
   const editedLines = new Set();
@@ -274,7 +251,7 @@
     }
     const dlXml = $('#finish-dl-xml'), dlBin = $('#finish-dl-bin');
     if (dlXml) dlXml.disabled = !editor.getValue().trim();
-      if (dlBin) dlBin.disabled = !editor.getValue().trim() || currentRouterType() === 'huawei';
+      if (dlBin) dlBin.disabled = !editor.getValue().trim();
   }
   const finishDlXml = $('#finish-dl-xml');
   if (finishDlXml) finishDlXml.addEventListener('click', () => $('#download-xml').click());
@@ -354,7 +331,7 @@
     const dl = $('#download-xml');
     const enc = $('#encode-form-submit');
     if (dl) dl.disabled = !hasContent;
-    if (enc) enc.disabled = !hasContent || currentRouterType() === 'huawei';
+    if (enc) enc.disabled = !hasContent;
     if (hasContent) setStep(5);
     // إحصاء كلمات السر + تحقق حي (بتأخير)
     clearTimeout(syncEditor._t);
@@ -992,7 +969,6 @@
     setBusy(button, true); progressShow('decode-progress', true); editorBusy(true); alertBox.classList.add('d-none'); setStep(2);
     try {
       const requestForm = new FormData($('#decode-form'));
-      const routerType = requestForm.get('router_type') || 'zte';
       const response = await fetch('/api/v1/decode', { method: 'POST', body: requestForm });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error || 'تعذر فك الملف');
@@ -1007,14 +983,13 @@
       let accCount = 0;
       try { const mm = data.xml.match(/name="UserName"/gi); accCount = mm ? mm.length : 0; } catch (_) {}
       const lineCount = editor.lineCount();
-      const modelLabel = routerType === 'huawei' ? `Huawei ${metadata.huawei_model || requestForm.get('huawei_model') || ''}`.trim() : (metadata.used_key_source || 'بدون تشفير');
-      $('#editor-status').textContent = `تم الفك — ${modelLabel} • ${lineCount.toLocaleString('ar')} سطر • ${accCount.toLocaleString('ar')} حساب`;
-      $('#payload-badge').textContent = routerType === 'huawei' ? modelLabel : `Payload ${metadata.payload_type}`; $('#payload-badge').classList.remove('d-none');
+      $('#editor-status').textContent = `تم الفك — ${metadata.used_key_source || 'بدون تشفير'} • ${lineCount.toLocaleString('ar')} سطر • ${accCount.toLocaleString('ar')} حساب`;
+      $('#payload-badge').textContent = `Payload ${metadata.payload_type}`; $('#payload-badge').classList.remove('d-none');
       renderMeta(metadata);
       if (editPos) editPos.textContent = 'آخر تعديل: —';
       $('#download-xml').disabled = false; $('#encode-form-submit').disabled = false; syncEditor(); syncCursor();
       setStep(2);
-      toast(`تم فك ${routerType === 'huawei' ? 'Huawei' : 'الملف'} بنجاح — ${lineCount.toLocaleString('ar')} سطر و${accCount.toLocaleString('ar')} حساب إنترنت`, 'success');
+      toast(`تم فك الملف بنجاح — ${lineCount.toLocaleString('ar')} سطر و${accCount.toLocaleString('ar')} حساب إنترنت`, 'success');
       goStep(2, false);
     } catch (error) { editorBusy(false); showAlert(error.message); toast(error.message, 'error', 4500); } finally { setBusy(button, false); progressShow('decode-progress', false); }
   }
@@ -1066,7 +1041,6 @@
   async function doEncodeBin() {
     const button = $('#encode-form-submit'); setBusy(button, true); alertBox.classList.add('d-none');
     try {
-      if (currentRouterType() === 'huawei') throw new Error('إعادة تشفير Huawei غير مفعّلة في الواجهة حالياً. يمكنك تنزيل XML بعد فكّه.');
       if (!editor.getValue().trim()) throw new Error('محرر XML فارغ.');
       await download('/api/encode', 'config.bin', metadataForm());
       baseline = editor.getValue(); clearEditMarks(); syncEditor(); setStep(6);
