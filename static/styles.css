@@ -58,7 +58,7 @@ code { color:var(--cyan); }
 .editor-loading p { margin:0; font-size:.85rem; font-weight:700; }
 /* password show/hide */
 .pass-wrap { position:relative; }
-.pass-wrap .form-control { padding-inline-end:2.6rem; }
+.pass-wrap .form-control { padding-inline-end:6.5rem; }
 #pass-toggle { position:absolute; inset-inline-end:.4rem; top:50%; transform:translateY(-50%); border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:.25rem .45rem; font-size:.8rem; font-weight:800; cursor:pointer; line-height:1.4; white-space:nowrap; color:var(--text); }
 #pass-toggle:hover { border-color:var(--cyan); }
 /* لون نص الحقول ثابت وواضح (إصلاح عدم ظهور الأرقام) */
