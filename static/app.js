@@ -188,7 +188,45 @@
     b.addEventListener('click', () => goStep(Number(b.getAttribute('data-back')), false));
   });
   const restartBtn = $('#wizard-restart');
-  if (restartBtn) restartBtn.addEventListener('click', () => { goStep(1, false); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  if (restartBtn) restartBtn.addEventListener('click', resetAll);
+  // إعادة تعيين كاملة ونسيان كل اختيارات المستخدم
+  function resetAll() {
+    try { $('#decode-form').reset(); $('#xml-upload-form').reset(); } catch (_) {}
+    try {
+      $('#custom-fields').classList.add('d-none');
+      $('#upload-custom-fields').classList.add('d-none');
+    } catch (_) {}
+    const fi = $('#file-input'); if (fi) fi.value = '';
+    const xi = $('#xml-file-input'); if (xi) xi.value = '';
+    const fn = $('#file-name'); if (fn) fn.textContent = 'لم يتم اختيار ملف';
+    const xn = $('#xml-file-name'); if (xn) xn.textContent = 'لم يتم اختيار ملف';
+    const dz = $('#dropzone'); if (dz) dz.classList.remove('has-file');
+    const xz = $('#xml-dropzone'); if (xz) xz.classList.remove('has-file');
+    const fc = $('#file-check'); if (fc) { fc.textContent = ''; fc.className = 'file-check'; }
+    const xc = $('#xml-file-check'); if (xc) { xc.textContent = ''; xc.className = 'file-check'; }
+    operation = 'decode'; applyOp();
+    selectedSource = null; selectedIsp = null;
+    document.querySelectorAll('.isp-card.selected').forEach((c) => { c.classList.remove('selected'); c.setAttribute('aria-checked', 'false'); });
+    const iu = $('#isp-username'); if (iu) { iu.value = ''; }
+    const ip = $('#isp-password'); if (ip) { ip.value = ''; }
+    const rs = $('#isp-result'); if (rs) rs.classList.add('d-none');
+    ispChangeCount = 0;
+    try { root.removeAttribute('data-isp'); } catch (_) {}
+    metadata = {}; baseline = '';
+    silentSet = true;
+    try { editor.setValue(''); } catch (_) {}
+    silentSet = false;
+    clearEditMarks(); clearSearch(); syncEditor(); syncCursor();
+    renderMeta(null);
+    const st = $('#editor-status'); if (st) st.textContent = 'بانتظار فك ملف — ارفع config.bin للبدء';
+    const pb = $('#payload-badge'); if (pb) pb.classList.add('d-none');
+    const ep2 = $('#edit-pos'); if (ep2) ep2.textContent = 'آخر تعديل: —';
+    try { localStorage.removeItem('zte-prefs'); localStorage.removeItem('zte-op'); } catch (_) {}
+    ispFieldHint();
+    goStep(1, false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast('تمت إعادة التعيين — ابدأ من جديد', 'info');
+  }
   function fillFinish() {
     const bytes = new Blob([editor.getValue()]).size;
     const s = $('#finish-summary');
@@ -363,58 +401,86 @@
   /* ---------- Search inside XML ---------- */
   const searchInput = $('#editor-search');
   const searchCount = $('#search-count');
+  const MAX_SEARCH = 300; // حد أقصى حتى لا يتجمد الجهاز مع الملفات الكبيرة
+  let searchRanges = [];
   let searchMarks = [];
+  let searchCurMark = null;
   let searchIndex = -1;
+  let searchToken = 0;
+  let searchTruncated = false;
   function clearSearch() {
+    searchToken++;
     searchMarks.forEach((m) => { try { m.clear(); } catch (_) {} });
-    searchMarks = []; searchIndex = -1;
+    if (searchCurMark) { try { searchCurMark.clear(); } catch (_) {} searchCurMark = null; }
+    searchMarks = []; searchRanges = []; searchIndex = -1; searchTruncated = false;
     if (searchCount) searchCount.textContent = '0 / 0';
     if (searchInput) searchInput.classList.remove('has-results', 'no-results');
   }
-  function runSearch(forward = true) {
+  function runSearch() {
     clearSearch();
     const q = (searchInput.value || '').trim();
-    if (!q) return;
+    if (!q || q.length > 200) return;
+    const my = searchToken;
+    // جمع المواضع أولاً (سريع) ثم ترميز دفعات صغيرة حتى لا يتجمد الجهاز
     const cursor = editor.getSearchCursor(q, { line: 0, ch: 0 }, { caseFold: true });
+    const found = [];
     let guard = 0;
-    while (cursor.findNext() && guard++ < 1000) {
-      searchMarks.push(editor.markText(cursor.from(), cursor.to(), { className: 'cm-search-hit' }));
-    }
-    if (!searchMarks.length) {
+    try {
+      while (guard++ < MAX_SEARCH && cursor.findNext()) {
+        found.push({ from: cursor.from(), to: cursor.to() });
+      }
+      searchTruncated = !!guard && cursor.findNext();
+    } catch (_) {}
+    if (my !== searchToken) return;
+    if (!found.length) {
       if (searchCount) searchCount.textContent = '0 / 0';
       searchInput.classList.add('no-results');
       return;
     }
     searchInput.classList.add('has-results');
-    searchIndex = 0;
-    jumpToHit(searchIndex);
+    searchRanges = found;
+    markBatch(my, 0);
+  }
+  function markBatch(my, start) {
+    if (my !== searchToken) return;
+    const end = Math.min(start + 60, searchRanges.length);
+    for (let i = start; i < end; i++) {
+      try { searchMarks.push(editor.markText(searchRanges[i].from, searchRanges[i].to, { className: 'cm-search-hit' })); } catch (_) {}
+    }
+    if (end < searchRanges.length) {
+      setTimeout(() => markBatch(my, end), 30);
+    } else if (my === searchToken) {
+      searchIndex = 0;
+      jumpToHit(0);
+    }
+  }
+  function totalLabel() {
+    return searchTruncated ? searchRanges.length + '+' : String(searchRanges.length);
   }
   function jumpToHit(i) {
-    if (!searchMarks.length) return;
-    searchIndex = (i + searchMarks.length) % searchMarks.length;
-    const ranges = searchMarks.map((m) => { try { return m.find(); } catch (_) { return null; } }).filter(Boolean);
-    if (!ranges.length) return;
-    const r = ranges[searchIndex];
-    const cur = searchMarks[searchMarks.length - 1];
-    if (cur && cur.className === 'cm-search-hit-current') { try { cur.clear(); } catch (_) {} searchMarks.pop(); }
-    try { searchMarks.push(editor.markText(r.from, r.to, { className: 'cm-search-hit-current' })); } catch (_) {}
-    editor.setSelection(r.from, r.to);
-    editor.scrollIntoView({ from: r.from, to: r.to }, 120);
-    if (searchCount) searchCount.textContent = `${searchIndex + 1} / ${ranges.length}`;
+    if (!searchRanges.length) return;
+    searchIndex = (i + searchRanges.length) % searchRanges.length;
+    const r = searchRanges[searchIndex];
+    if (searchCurMark) { try { searchCurMark.clear(); } catch (_) {} searchCurMark = null; }
+    try { searchCurMark = editor.markText(r.from, r.to, { className: 'cm-search-hit-current' }); } catch (_) {}
+    try { editor.setSelection(r.from, r.to); } catch (_) {}
+    try { editor.scrollIntoView({ from: r.from, to: r.to }, 120); } catch (_) {}
+    if (searchCount) searchCount.textContent = `${searchIndex + 1} / ${totalLabel()}`;
   }
+  function hasSearch() { return searchRanges.length > 0; }
   let searchDebounce = null;
   if (searchInput) {
     searchInput.addEventListener('input', () => {
       clearTimeout(searchDebounce);
-      searchDebounce = setTimeout(() => runSearch(true), 250);
+      searchDebounce = setTimeout(runSearch, 350);
     });
     searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); if (!searchMarks.length) runSearch(true); else jumpToHit(searchIndex + (e.shiftKey ? -1 : 1)); }
+      if (e.key === 'Enter') { e.preventDefault(); if (!hasSearch()) runSearch(); else jumpToHit(searchIndex + (e.shiftKey ? -1 : 1)); }
       if (e.key === 'Escape') { clearSearch(); searchInput.value = ''; editor.focus(); }
     });
   }
-  $('#search-next').addEventListener('click', () => { if (!searchMarks.length) runSearch(true); else jumpToHit(searchIndex + 1); });
-  $('#search-prev').addEventListener('click', () => { if (!searchMarks.length) runSearch(true); else jumpToHit(searchIndex - 1); });
+  $('#search-next').addEventListener('click', () => { if (!hasSearch()) runSearch(); else jumpToHit(searchIndex + 1); });
+  $('#search-prev').addEventListener('click', () => { if (!hasSearch()) runSearch(); else jumpToHit(searchIndex - 1); });
   $('#search-clear').addEventListener('click', () => { clearSearch(); searchInput.value = ''; searchInput.focus(); });
   const emptyDismiss = $('#empty-dismiss');
   if (emptyDismiss) emptyDismiss.addEventListener('click', () => { if (emptyState) emptyState.classList.add('d-none'); editor.focus(); });
@@ -561,7 +627,7 @@
     if (!p) return;
     const show = p.type === 'password';
     p.type = show ? 'text' : 'password';
-    passToggle.textContent = show ? '🙈' : '👁';
+    passToggle.textContent = show ? '🙈 إخفاء' : '👁 إظهار';
     passToggle.setAttribute('aria-label', show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
   });
   // غير WE: حقل الرقم لا يقبل إلا أرقاماً فقط
@@ -704,6 +770,7 @@
     const srcPreset = ISP_PRESETS[selectedSource];
     const rawUser = ($('#isp-username').value || '').trim();
     const manualPass = $('#isp-password').value || '';
+    if (!rawUser) { toast('اكتب رقم الأرضي بكود المحافظة أو اسم المستخدم — الحقل إجباري', 'error'); return; }
     if (!manualPass) { toast('أدخل كلمة سر الإنترنت — الحقل إجباري', 'error'); return; }
     let manualUser = null;
     if (rawUser) {
@@ -910,13 +977,17 @@
         silentSet = false;
       });
       baseline = data.xml; clearSearch(); clearEditMarks();
-      $('#editor-status').textContent = `تم الفك — ${metadata.used_key_source || 'بدون تشفير'}`;
+      // عداد: الأسطر + حسابات الإنترنت المكتشفة
+      let accCount = 0;
+      try { const mm = data.xml.match(/name="UserName"/gi); accCount = mm ? mm.length : 0; } catch (_) {}
+      const lineCount = editor.lineCount();
+      $('#editor-status').textContent = `تم الفك — ${metadata.used_key_source || 'بدون تشفير'} • ${lineCount.toLocaleString('ar')} سطر • ${accCount.toLocaleString('ar')} حساب`;
       $('#payload-badge').textContent = `Payload ${metadata.payload_type}`; $('#payload-badge').classList.remove('d-none');
       renderMeta(metadata);
       if (editPos) editPos.textContent = 'آخر تعديل: —';
       $('#download-xml').disabled = false; $('#encode-form-submit').disabled = false; syncEditor(); syncCursor();
       setStep(2);
-      toast('تم فك الملف بنجاح', 'success');
+      toast(`تم فك التشفير بنجاح — ${lineCount.toLocaleString('ar')} سطر و${accCount.toLocaleString('ar')} حساب إنترنت`, 'success');
       goStep(2, false);
     } catch (error) { editorBusy(false); showAlert(error.message); toast(error.message, 'error', 4500); } finally { setBusy(button, false); progressShow('decode-progress', false); }
   }
