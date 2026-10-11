@@ -1,65 +1,38 @@
-# API فك ملفات التكوين
 
-أضاف التطبيق نقطة API مستقلة لفك ملفات `config.bin` تلقائياً إلى XML.
+## Huawei API
 
-## المسار
-
-```text
-POST /api/v1/decode
-```
-
-الموقع المنشور:
+يدعم API حالياً ملفات Huawei الخاصة بـ `DG8045` و`HG633` فقط. استخدم المسار المباشر:
 
 ```text
-https://mumost.pythonanywhere.com/api/v1/decode
+POST /api/v1/huawei/decode
 ```
 
-## الطريقة الأولى: رفع Multipart
+مثال DG8045:
 
 ```bash
 curl -X POST \
   -F "file=@config.bin" \
-  https://mumost.pythonanywhere.com/api/v1/decode
+  -F "huawei_model=dg8045" \
+  https://mumost.pythonanywhere.com/api/v1/huawei/decode
 ```
 
-يمكن إرسال خيارات المفتاح مع الملف عند الحاجة:
+مثال HG633:
 
 ```bash
 curl -X POST \
   -F "file=@config.bin" \
-  -F "key_mode=default" \
-  -F "signature=ZXHN H108N" \
-  https://mumost.pythonanywhere.com/api/v1/decode
+  -F "huawei_model=hg633" \
+  https://mumost.pythonanywhere.com/api/v1/huawei/decode
 ```
 
-## الطريقة الثانية: JSON وBase64
-
-حوّل الملف إلى Base64 ثم أرسل JSON:
+ويمكن استخدام المسار العام مع تحديد النوع:
 
 ```bash
-python3 - <<'PY'
-import base64, json
-from pathlib import Path
-
-payload = {
-    "filename": "config.bin",
-    "file_base64": base64.b64encode(Path("config.bin").read_bytes()).decode("ascii"),
-    "key_mode": "default",
-}
-Path("request.json").write_text(json.dumps(payload), encoding="utf-8")
-PY
-
 curl -X POST \
-  -H "Content-Type: application/json" \
-  --data-binary @request.json \
+  -F "file=@config.bin" \
+  -F "router_type=huawei" \
+  -F "huawei_model=dg8045" \
   https://mumost.pythonanywhere.com/api/v1/decode
 ```
 
-## الاستجابة الناجحة
-
-```json
-{
-  "ok": true,
-  "filename": "config.bin",
-  "xml": "<DB>...</DB>",
-  "xml_base64": "...",
+تعيد الاستجابة `xml` و`xml_base64` و`metadata`، بما في ذلك `signature_verified` واسم الموديل. إذا كان الموديل أو إصدار Firmware مختلفاً فقد تفشل العملية لأن مفاتيح Huawei وتخطيط الملف قد يتغيران بين الإصدارات.

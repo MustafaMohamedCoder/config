@@ -70,6 +70,28 @@ class ZteConfigWebTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["xml"], xml.decode())
 
+    def test_huawei_api_rejects_unsupported_model(self):
+        response = self.client.post(
+            "/api/v1/decode",
+            data={
+                "router_type": "huawei",
+                "huawei_model": "unknown",
+                "file": (io.BytesIO(b"not-a-huawei-config"), "config.bin"),
+            },
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("DG8045 أو HG633", response.get_json()["error"])
+
+    def test_huawei_alias_exists(self):
+        response = self.client.post(
+            "/api/v1/huawei/decode",
+            data={"file": (io.BytesIO(b"bad"), "config.bin")},
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("DG8045", response.get_json()["error"])
+
     def test_missing_file_is_rejected(self):
         response = self.client.post("/api/decode", data={})
         self.assertEqual(response.status_code, 400)
