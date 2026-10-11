@@ -627,7 +627,7 @@
     if (!p) return;
     const show = p.type === 'password';
     p.type = show ? 'text' : 'password';
-    passToggle.textContent = show ? '🙈 إخفاء' : '👁 إظهار';
+    passToggle.textContent = show ? '🙈 إخفاء كلمة المرور' : '👁 إظهار كلمة المرور';
     passToggle.setAttribute('aria-label', show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
   });
   // غير WE: حقل الرقم لا يقبل إلا أرقاماً فقط

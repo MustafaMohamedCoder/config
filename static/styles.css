@@ -56,11 +56,8 @@ code { color:var(--cyan); }
 /* editor loading overlay */
 .editor-loading { position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; gap:.6rem; align-items:center; justify-content:center; background:var(--panel2); background:color-mix(in srgb, var(--panel2) 92%, transparent); border:1px solid var(--line); border-radius:10px; color:var(--text); text-align:center; padding:1rem; }
 .editor-loading p { margin:0; font-size:.85rem; font-weight:700; }
-/* password show/hide */
-.pass-wrap { position:relative; }
-.pass-wrap .form-control { padding-inline-end:6.5rem; }
-#pass-toggle { position:absolute; inset-inline-end:.4rem; top:50%; transform:translateY(-50%); border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:.25rem .45rem; font-size:.8rem; font-weight:800; cursor:pointer; line-height:1.4; white-space:nowrap; color:var(--text); }
-#pass-toggle:hover { border-color:var(--cyan); }
+/* زر إظهار كلمة المرور (مستقل تحت الحقل) */
+#pass-toggle { white-space:nowrap; }
 /* لون نص الحقول ثابت وواضح (إصلاح عدم ظهور الأرقام) */
 #isp-username, #isp-password { color:var(--text); -webkit-text-fill-color:var(--text); caret-color:var(--cyan); }
 #isp-username::placeholder, #isp-password::placeholder { -webkit-text-fill-color:var(--muted); }
