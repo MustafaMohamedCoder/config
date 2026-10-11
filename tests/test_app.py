@@ -12,7 +12,7 @@ class ZteConfigWebTests(unittest.TestCase):
     def test_homepage_loads(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn("ZTE Config Studio", response.get_data(as_text=True))
+        self.assertIn("Config Studio", response.get_data(as_text=True))
         self.assertIn('value="huawei"', response.get_data(as_text=True))
 
     def test_routes_manifest_loads(self):

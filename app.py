@@ -236,7 +236,7 @@ def index():
 
 @app.get("/manus-routes.json")
 def manus_routes():
-    return jsonify({"routes": [{"path": "/", "title": "ZTE Config Studio"}]})
+    return jsonify({"routes": [{"path": "/", "title": "Config Studio"}]})
 
 
 @app.post("/api/decode")
