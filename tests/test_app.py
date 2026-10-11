@@ -15,6 +15,9 @@ class ZteConfigWebTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Config Studio", response.get_data(as_text=True))
         self.assertIn('value="huawei"', response.get_data(as_text=True))
+        self.assertIn('id="huawei-model"', response.get_data(as_text=True))
+        self.assertIn('value="dg8045"', response.get_data(as_text=True))
+        self.assertIn('value="hg633"', response.get_data(as_text=True))
 
     def test_routes_manifest_loads(self):
         response = self.client.get("/manus-routes.json")
